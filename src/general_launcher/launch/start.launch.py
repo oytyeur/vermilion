@@ -35,10 +35,12 @@ def generate_launch_description():
 
     # Combine all elements
     launch_entities = [
-        add_pointcloud_to_laserscan_node(),
-        Node(package = "tf2_ros", 
-                       executable = "static_transform_publisher",
-                       arguments = ["0", "0", "0", "0", "0", "0", "odom", "map"]),
+        # add_pointcloud_to_laserscan_node(),
+        Node(
+            package = "tf2_ros", 
+            executable = "static_transform_publisher",
+            arguments = ["0", "0", "0", "0", "0", "0", "odom", "map"]
+        ),
         # IncludeLaunchDescription(
         #         PythonLaunchDescriptionSource([
         #             os.path.join(get_package_share_directory('slam_toolbox'),
@@ -51,6 +53,15 @@ def generate_launch_description():
         #             'base_frame': 'base_link'
         #         }.items(),
         # )
+        Node(
+            package='pc2_values_demonstrator',
+            executable='pc2_values_demonstrator_exec',
+            name='pc2_values_demonstrator_node',
+            remappings=[
+                ('input', '/utlidar/cloud_deskewed'),
+            ]
+
+        )
     ]
     
     return LaunchDescription(launch_entities)
