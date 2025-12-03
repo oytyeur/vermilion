@@ -23,7 +23,7 @@ def add_pointcloud_to_laserscan_node() -> Node:
             # 'target_frame': 'odom',
             'min_height': 0.12,   
             'max_height': 1.0,
-            'angle_increment': 0.005
+            'angle_increment': 0.1
         }],
         output='screen',
     )
@@ -35,7 +35,7 @@ def generate_launch_description():
 
     # Combine all elements
     launch_entities = [
-        # add_pointcloud_to_laserscan_node(),
+        add_pointcloud_to_laserscan_node(),
         Node(
             package = "tf2_ros", 
             executable = "static_transform_publisher",
@@ -53,12 +53,21 @@ def generate_launch_description():
         #             'base_frame': 'base_link'
         #         }.items(),
         # )
+        # Node(
+        #     package='pc2_values_demonstrator',
+        #     executable='pc2_values_demonstrator_exec',
+        #     name='pc2_values_demonstrator_node',
+        #     remappings=[
+        #         ('input', '/utlidar/cloud_deskewed'),
+        #     ]
+
+        # ),
         Node(
-            package='pc2_values_demonstrator',
-            executable='pc2_values_demonstrator_exec',
-            name='pc2_values_demonstrator_node',
+            package='odom_baselink_tf_publisher',
+            executable='odom_baselink_tf_publisher_exec',
+            name='odom_baselink_tf_publisher_node',
             remappings=[
-                ('input', '/utlidar/cloud_deskewed'),
+                ('input', '/utlidar/robot_pose'),
             ]
 
         )
