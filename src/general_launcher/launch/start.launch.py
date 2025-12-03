@@ -20,10 +20,10 @@ def add_pointcloud_to_laserscan_node() -> Node:
             ('scan', 'scan'),
         ],
         parameters=[{
-            # 'target_frame': 'odom',
+            'target_frame': 'base_link',
             'min_height': 0.12,   
             'max_height': 1.0,
-            'angle_increment': 0.1
+            'angle_increment': 0.01
         }],
         output='screen',
     )
@@ -36,11 +36,15 @@ def generate_launch_description():
     # Combine all elements
     launch_entities = [
         add_pointcloud_to_laserscan_node(),
+
+
         Node(
             package = "tf2_ros", 
             executable = "static_transform_publisher",
             arguments = ["0", "0", "0", "0", "0", "0", "odom", "map"]
         ),
+
+
         # IncludeLaunchDescription(
         #         PythonLaunchDescriptionSource([
         #             os.path.join(get_package_share_directory('slam_toolbox'),
@@ -53,6 +57,8 @@ def generate_launch_description():
         #             'base_frame': 'base_link'
         #         }.items(),
         # )
+
+
         # Node(
         #     package='pc2_values_demonstrator',
         #     executable='pc2_values_demonstrator_exec',
@@ -62,6 +68,8 @@ def generate_launch_description():
         #     ]
 
         # ),
+
+
         Node(
             package='odom_baselink_tf_publisher',
             executable='odom_baselink_tf_publisher_exec',
@@ -69,7 +77,6 @@ def generate_launch_description():
             remappings=[
                 ('input', '/utlidar/robot_pose'),
             ]
-
         )
     ]
     
