@@ -14,7 +14,7 @@ def add_pointcloud_to_laserscan_node() -> Node:
     return Node(
         package='pointcloud_to_laserscan',
         executable='pointcloud_to_laserscan_node',
-        name='go2_pointcloud_to_laserscan',
+        name='pointcloud_to_laserscan',
         remappings=[
             ('cloud_in', '/utlidar/cloud_deskewed'),
             ('scan', 'scan'),
@@ -22,8 +22,8 @@ def add_pointcloud_to_laserscan_node() -> Node:
         parameters=[{
             'target_frame': 'base_link',
             'min_height': 0.12,   
-            'max_height': 1.0,
-            'angle_increment': 0.01
+            'max_height': 1.5,
+            'angle_increment': 0.005
         }],
         output='screen',
     )
@@ -35,28 +35,35 @@ def generate_launch_description():
 
     # Combine all elements
     launch_entities = [
+        # RViz2
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='go2_rviz2',
+            output='screen',
+            arguments=['-d', os.path.join(get_package_share_directory('general_launcher'), 'config', 'basic_rviz_conf.rviz')],
+            parameters=[{'use_sim_time': use_sim_time}]
+        ),
+
+
         add_pointcloud_to_laserscan_node(),
 
 
         Node(
             package = "tf2_ros", 
             executable = "static_transform_publisher",
-            arguments = ["0", "0", "0", "0", "0", "0", "odom", "map"]
+            arguments = ["0", "0", "0", "0", "0", "0", "map", "odom"]
         ),
-
-
-        # IncludeLaunchDescription(
-        #         PythonLaunchDescriptionSource([
-        #             os.path.join(get_package_share_directory('slam_toolbox'),
-        #                         'launch', 'online_async_launch.py')
-        #         ]),
-        #         launch_arguments={
-        #             'use_sim_time': use_sim_time,
-        #             'odom_frame': 'odom',
-        #             'map_frame': 'map',
-        #             'base_frame': 'base_link'
-        #         }.items(),
-        # )
+        IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([
+                    os.path.join(get_package_share_directory('slam_toolbox'),
+                                'launch', 'online_async_launch.py')
+                ]),
+                launch_arguments={
+                    'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
+                    'use_sim_time': use_sim_time,
+                }.items(),
+            ),
 
 
         # Node(
