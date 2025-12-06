@@ -22,8 +22,8 @@ def add_pointcloud_to_laserscan_node() -> Node:
         parameters=[{
             'target_frame': 'base_link',
             'min_height': 0.12,   
-            'max_height': 1.0,
-            'angle_increment': 0.01
+            'max_height': 1.5,
+            'angle_increment': 0.005
         }],
         output='screen',
     )
@@ -52,7 +52,7 @@ def generate_launch_description():
         Node(
             package = "tf2_ros", 
             executable = "static_transform_publisher",
-            arguments = ["0", "0", "0", "0", "0", "0", "odom", "map"]
+            arguments = ["0", "0", "0", "0", "0", "0", "map", "odom"]
         ),
         IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([
