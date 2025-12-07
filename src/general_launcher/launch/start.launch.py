@@ -65,16 +65,28 @@ def generate_launch_description():
                 }.items(),
             ),
 
+        Node(
+            package='lidar_zero_points_filter',
+            executable='lidar_zero_points_filter_exec',
+            name='lidar_zero_points_filter_node',
+            remappings=[
+                ('input', '/utlidar/cloud_deskewed'),
+                ('output', '/lidar/zero_filtered_points')
+            ]
 
-        # Node(
-        #     package='pc2_values_demonstrator',
-        #     executable='pc2_values_demonstrator_exec',
-        #     name='pc2_values_demonstrator_node',
-        #     remappings=[
-        #         ('input', '/utlidar/cloud_deskewed'),
-        #     ]
+        ),
 
-        # ),
+
+        Node(
+            package='pc2_values_demonstrator',
+            executable='pc2_values_demonstrator_exec',
+            name='pc2_values_demonstrator_node',
+            remappings=[
+                # ('input', '/utlidar/cloud_deskewed'),
+                ('input', '/lidar/zero_filtered_points'),
+            ]
+
+        ),
 
 
         Node(
