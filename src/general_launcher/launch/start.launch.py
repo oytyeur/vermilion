@@ -16,7 +16,9 @@ def add_pointcloud_to_laserscan_node() -> Node:
         executable='pointcloud_to_laserscan_node',
         name='pointcloud_to_laserscan',
         remappings=[
-            ('cloud_in', '/utlidar/cloud_deskewed'),
+            # ('cloud_in', '/utlidar/cloud_deskewed'),
+            # ('cloud_in', '/lidar/zero_filtered_points'),
+            ('cloud_in', '/lidar/baselink_points'),
             ('scan', 'scan'),
         ],
         parameters=[{
@@ -31,7 +33,7 @@ def add_pointcloud_to_laserscan_node() -> Node:
 
 def generate_launch_description():
     """Generate the launch description for Go2 robot system"""
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
     # Combine all elements
     launch_entities = [
@@ -46,37 +48,6 @@ def generate_launch_description():
         ),
 
 
-        add_pointcloud_to_laserscan_node(),
-
-
-        Node(
-            package = "tf2_ros", 
-            executable = "static_transform_publisher",
-            arguments = ["0", "0", "0", "0", "0", "0", "map", "odom"]
-        ),
-        IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([
-                    os.path.join(get_package_share_directory('slam_toolbox'),
-                                'launch', 'online_async_launch.py')
-                ]),
-                launch_arguments={
-                    'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
-                    'use_sim_time': use_sim_time,
-                }.items(),
-            ),
-
-
-        # Node(
-        #     package='pc2_values_demonstrator',
-        #     executable='pc2_values_demonstrator_exec',
-        #     name='pc2_values_demonstrator_node',
-        #     remappings=[
-        #         ('input', '/utlidar/cloud_deskewed'),
-        #     ]
-
-        # ),
-
-
         Node(
             package='odom_baselink_tf_publisher',
             executable='odom_baselink_tf_publisher_exec',
@@ -84,7 +55,62 @@ def generate_launch_description():
             remappings=[
                 ('input', '/utlidar/robot_pose'),
             ]
-        )
+        ),
+
+
+        Node(
+            package = "tf2_ros", 
+            executable = "static_transform_publisher",
+            arguments = ["0", "0", "0", "0", "0", "0", "map", "odom"]
+        ),
+
+
+        Node(
+            package='lidar_zero_points_filter',
+            executable='lidar_zero_points_filter_exec',
+            name='lidar_zero_points_filter_node',
+            remappings=[
+                ('input', '/utlidar/cloud_deskewed'),
+                ('output', '/lidar/zero_filtered_points')
+            ]
+        ),
+
+
+        Node(
+            package='lidar_points_to_baselink_transformer',
+            executable='lidar_points_to_baselink_transformer_exec',
+            name='lidar_points_to_baselink_transformer_node',
+            remappings=[
+                ('input', '/lidar/zero_filtered_points'),
+                ('output', '/lidar/baselink_points')
+            ]
+        ),
+
+
+        add_pointcloud_to_laserscan_node(),
+
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('slam_toolbox'),
+                            'launch', 'online_async_launch.py')
+            ]),
+            launch_arguments={
+                'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
+                'use_sim_time': use_sim_time,
+            }.items(),
+        ),
+
+
+        # Node(
+        #     package='pc2_values_demonstrator',
+        #     executable='pc2_values_demonstrator_exec',
+        #     name='pc2_values_demonstrator_node',
+        #     remappings=[
+        #         # ('input', '/utlidar/cloud_deskewed'),
+        #         ('input', '/lidar/zero_filtered_points'),
+        #     ]
+        # ),
     ]
     
     return LaunchDescription(launch_entities)
