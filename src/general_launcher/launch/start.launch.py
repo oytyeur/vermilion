@@ -16,7 +16,9 @@ def add_pointcloud_to_laserscan_node() -> Node:
         executable='pointcloud_to_laserscan_node',
         name='pointcloud_to_laserscan',
         remappings=[
-            ('cloud_in', '/utlidar/cloud_deskewed'),
+            # ('cloud_in', '/utlidar/cloud_deskewed'),
+            # ('cloud_in', '/lidar/zero_filtered_points'),
+            ('cloud_in', '/lidar/baselink_points'),
             ('scan', 'scan'),
         ],
         parameters=[{
@@ -46,7 +48,14 @@ def generate_launch_description():
         ),
 
 
-        add_pointcloud_to_laserscan_node(),
+        Node(
+            package='odom_baselink_tf_publisher',
+            executable='odom_baselink_tf_publisher_exec',
+            name='odom_baselink_tf_publisher_node',
+            remappings=[
+                ('input', '/utlidar/robot_pose'),
+            ]
+        ),
 
 
         Node(
@@ -54,16 +63,7 @@ def generate_launch_description():
             executable = "static_transform_publisher",
             arguments = ["0", "0", "0", "0", "0", "0", "map", "odom"]
         ),
-        IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([
-                    os.path.join(get_package_share_directory('slam_toolbox'),
-                                'launch', 'online_async_launch.py')
-                ]),
-                launch_arguments={
-                    'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
-                    'use_sim_time': use_sim_time,
-                }.items(),
-            ),
+
 
         Node(
             package='lidar_zero_points_filter',
@@ -73,30 +73,44 @@ def generate_launch_description():
                 ('input', '/utlidar/cloud_deskewed'),
                 ('output', '/lidar/zero_filtered_points')
             ]
-
         ),
 
 
         Node(
-            package='pc2_values_demonstrator',
-            executable='pc2_values_demonstrator_exec',
-            name='pc2_values_demonstrator_node',
+            package='lidar_points_to_baselink_transformer',
+            executable='lidar_points_to_baselink_transformer_exec',
+            name='lidar_points_to_baselink_transformer_node',
             remappings=[
-                # ('input', '/utlidar/cloud_deskewed'),
                 ('input', '/lidar/zero_filtered_points'),
+                ('output', '/lidar/baselink_points')
             ]
-
         ),
 
 
-        Node(
-            package='odom_baselink_tf_publisher',
-            executable='odom_baselink_tf_publisher_exec',
-            name='odom_baselink_tf_publisher_node',
-            remappings=[
-                ('input', '/utlidar/robot_pose'),
-            ]
-        )
+        add_pointcloud_to_laserscan_node(),
+
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('slam_toolbox'),
+                            'launch', 'online_async_launch.py')
+            ]),
+            launch_arguments={
+                'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
+                'use_sim_time': use_sim_time,
+            }.items(),
+        ),
+
+
+        # Node(
+        #     package='pc2_values_demonstrator',
+        #     executable='pc2_values_demonstrator_exec',
+        #     name='pc2_values_demonstrator_node',
+        #     remappings=[
+        #         # ('input', '/utlidar/cloud_deskewed'),
+        #         ('input', '/lidar/zero_filtered_points'),
+        #     ]
+        # ),
     ]
     
     return LaunchDescription(launch_entities)
