@@ -31,7 +31,7 @@ def add_pointcloud_to_laserscan_node() -> Node:
 
 def generate_launch_description():
     """Generate the launch description for Go2 robot system"""
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
     # Combine all elements
     launch_entities = [
