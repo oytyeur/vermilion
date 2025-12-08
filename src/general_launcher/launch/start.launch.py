@@ -18,7 +18,8 @@ def add_pointcloud_to_laserscan_node() -> Node:
         remappings=[
             # ('cloud_in', '/utlidar/cloud_deskewed'),
             # ('cloud_in', '/lidar/zero_filtered_points'),
-            ('cloud_in', '/lidar/baselink_points'),
+            # ('cloud_in', '/lidar/baselink_points'),
+            ('cloud_in', '/lidar/buffered_points'),
             ('scan', 'scan'),
         ],
         parameters=[{
@@ -33,7 +34,7 @@ def add_pointcloud_to_laserscan_node() -> Node:
 
 def generate_launch_description():
     """Generate the launch description for Go2 robot system"""
-    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
 
     # Combine all elements
     launch_entities = [
@@ -75,13 +76,26 @@ def generate_launch_description():
             ]
         ),
 
+        
+        Node(
+            package='lidar_point_cloud_buffer',
+            executable='lidar_point_cloud_buffer_exec',
+            name='lidar_point_cloud_buffer_node',
+            remappings=[
+                ('input', '/lidar/zero_filtered_points'),
+                ('output', '/lidar/buffered_points')
+            ],
+            parameters=[{'buffer_time': 0.5}]
+        ),
+
 
         Node(
             package='lidar_points_to_baselink_transformer',
             executable='lidar_points_to_baselink_transformer_exec',
             name='lidar_points_to_baselink_transformer_node',
             remappings=[
-                ('input', '/lidar/zero_filtered_points'),
+                # ('input', '/lidar/zero_filtered_points'),
+                ('input', '/lidar/buffered_points'),
                 ('output', '/lidar/baselink_points')
             ]
         ),
