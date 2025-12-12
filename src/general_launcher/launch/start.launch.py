@@ -24,8 +24,10 @@ def add_pointcloud_to_laserscan_node() -> Node:
         ],
         parameters=[{
             'target_frame': 'base_link',
-            'min_height': 0.12,   
-            'max_height': 1.5,
+            # 'min_height': 0.12,   
+            'min_height': -0.15,   
+            # 'max_height': 1.5,
+            'max_height': 2.0,
             'angle_increment': 0.005
         }],
         output='screen',
@@ -34,7 +36,7 @@ def add_pointcloud_to_laserscan_node() -> Node:
 
 def generate_launch_description():
     """Generate the launch description for Go2 robot system"""
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
     # Combine all elements
     launch_entities = [
@@ -42,7 +44,7 @@ def generate_launch_description():
         Node(
             package='rviz2',
             executable='rviz2',
-            name='go2_rviz2',
+            name='rviz2',
             output='screen',
             arguments=['-d', os.path.join(get_package_share_directory('general_launcher'), 'config', 'basic_rviz_conf.rviz')],
             parameters=[{'use_sim_time': use_sim_time}]
@@ -85,7 +87,7 @@ def generate_launch_description():
                 ('input', '/lidar/zero_filtered_points'),
                 ('output', '/lidar/buffered_points')
             ],
-            parameters=[{'buffer_time': 0.5}]
+            parameters=[{'buffer_time': 1.0}]
         ),
 
 
@@ -104,14 +106,28 @@ def generate_launch_description():
         add_pointcloud_to_laserscan_node(),
 
 
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([
+        #         os.path.join(get_package_share_directory('slam_toolbox'),
+        #                     'launch', 'online_async_launch.py')
+        #     ]),
+        #     launch_arguments={
+        #         'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
+        #         'use_sim_time': use_sim_time,
+        #     }.items(),
+        # ),
+
+
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
-                os.path.join(get_package_share_directory('slam_toolbox'),
-                            'launch', 'online_async_launch.py')
+                os.path.join(get_package_share_directory('nav2_bringup'),
+                            'launch', 'bringup_launch.py')
             ]),
             launch_arguments={
-                'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
+                'params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'nav2_params.yaml'),
                 'use_sim_time': use_sim_time,
+                'map': os.path.join(get_package_share_directory('general_launcher'), 'map', 'map_ok.yaml'),
+
             }.items(),
         ),
 
