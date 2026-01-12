@@ -87,7 +87,7 @@ def generate_launch_description():
                 ('input', '/lidar/zero_filtered_points'),
                 ('output', '/lidar/buffered_points')
             ],
-            parameters=[{'buffer_time': 1.0}]
+            parameters=[{'buffer_time': 1.0}] # для карты лучше выставить побольше (10 сек было хорошо)
         ),
 
 
@@ -126,7 +126,7 @@ def generate_launch_description():
             launch_arguments={
                 'params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'nav2_params.yaml'),
                 'use_sim_time': use_sim_time,
-                'map': os.path.join(get_package_share_directory('general_launcher'), 'map', 'map_ok.yaml'),
+                'map': os.path.join(get_package_share_directory('general_launcher'), 'map', 'detailed_v2.yaml'),
 
             }.items(),
         ),
