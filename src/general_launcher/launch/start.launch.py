@@ -87,7 +87,7 @@ def generate_launch_description():
                 ('input', '/lidar/zero_filtered_points'),
                 ('output', '/lidar/buffered_points')
             ],
-            parameters=[{'buffer_time': 1.0}]
+            parameters=[{'buffer_time': 1.0}] # для карты лучше выставить побольше (10 сек было хорошо)
         ),
 
 
