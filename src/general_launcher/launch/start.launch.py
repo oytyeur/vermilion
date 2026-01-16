@@ -141,6 +141,16 @@ def generate_launch_description():
         #         ('input', '/lidar/zero_filtered_points'),
         #     ]
         # ),
+
+        Node(
+            package='high_level_motion_controller',
+            executable='high_level_motion_controller_exec',
+            name='high_level_motion_controller_node',
+            remappings=[
+                # ('input', '/lidar/zero_filtered_points'),
+                ('input', '/cmd_vel')
+            ]
+        ),
     ]
     
     return LaunchDescription(launch_entities)
