@@ -13,8 +13,15 @@ HighLevelMotionController::HighLevelMotionController(const rclcpp::NodeOptions& 
 }
 
 void HighLevelMotionController::cmdTwistCallback(const Twist::ConstSharedPtr twist) {
-    double vx = twist->linear.x;
-    double wz = twist->angular.z;
+    float vx = twist->linear.x;
+    float wz = twist->angular.z;
+
+    if (vx == 0.0 and wz == 0.0) {
+        this->sport_client_.StopMove(this->req_);
+        return;
+    }
+
+    this->sport_client_.Move(this->req_, vx, 0.0, wz);
 
     RCLCPP_INFO(this->get_logger(), "CMD VEL: vx %f, wz %f", vx, wz);
 }
