@@ -106,6 +106,14 @@ def generate_launch_description():
         add_pointcloud_to_laserscan_node(),
 
 
+        IncludeLaunchDescription( # лаунчер с детецией
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('yolo_detector'),
+                            'launch', 'detector.launch.py')
+            ]),
+        ),
+
+
         # IncludeLaunchDescription(
         #     PythonLaunchDescriptionSource([
         #         os.path.join(get_package_share_directory('slam_toolbox'),
