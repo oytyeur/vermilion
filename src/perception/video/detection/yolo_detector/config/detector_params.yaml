@@ -1,0 +1,10 @@
+yolo_detector_node:
+  ros__parameters:
+    image_topic: "/camera/image_raw"   #
+    detection_threshold: 0.5
+    publish_annotated_image: true
+    model: "yolov8n.pt"
+    enable_tracking: true
+    target_classes: ''
+    qos_depth: 1
+    reliability: "best_effort"
