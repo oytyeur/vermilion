@@ -26,25 +26,25 @@ def main():
     navigator.waitUntilNav2Active()
 
 
-    # # Задаём список waypoints (координаты в системе 'map')
+    # Задаём список waypoints (координаты в системе 'map')
     keypoints = [
         create_pose(navigator, 1.273, -1.337, 0.062),   # 
         create_pose(navigator, 4.233, 7.501, 1.497),    # 
         create_pose(navigator, 1.449, 14.256, -3.129),     # 
         create_pose(navigator, -1.089, 6.683, -1.615)     # 
     ]
+    keypoints *= 10
 
-    # keypoints *= 3
+    keypoints.append(keypoints[0])
 
-    for i in range(3):
-        # Запускаем прохождение waypoints
-        # navigator.followWaypoints(keypoints)
-        navigator.goThroughPoses(keypoints)
-        # Мониторим выполнение
-        while not navigator.isTaskComplete():
-            feedback = navigator.getFeedback()
-            # Можно добавить логику по времени/расстоянию
-            time.sleep(1)
+    # for i in range(2):        
+    navigator.followWaypoints(keypoints)
+    # navigator.goThroughPoses(keypoints)
+    # Мониторим выполнение
+    while not navigator.isTaskComplete():
+        feedback = navigator.getFeedback()
+        # Можно добавить логику по времени/расстоянию
+        time.sleep(3)
 
 
     # Проверяем результат
