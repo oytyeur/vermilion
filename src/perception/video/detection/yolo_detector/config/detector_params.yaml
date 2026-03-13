@@ -1,10 +1,17 @@
 yolo_detector_node:
   ros__parameters:
-    image_topic: "/camera/image_raw"   #
+    image_topic: "/camera/raw_frame"
+    
+    model: "/home/aboba/vermilion/yolov8n.pt"
+    device: "cpu"
     detection_threshold: 0.5
-    publish_annotated_image: true
-    model: "yolov8n.pt"
+    
     enable_tracking: true
-    target_classes: ''
-    qos_depth: 1
+    publish_annotated_image: true
+    
+    stats_interval_sec: 5.0
+    
+    qos_depth: 10
     reliability: "best_effort"
+    
+    target_classes: "person"
