@@ -2,7 +2,8 @@ yolo_detector_node:
   ros__parameters:
     image_topic: "/camera/raw_frame"
     
-    model: "/home/aboba/vermilion/yolov8n.pt"
+    model: "/home/oytyeur/workspace/MGTS/Unitree/Go2Edu/vermilion/yolov8n.pt"
+    # model: "/home/aboba/vermilion/yolov8n.pt"
     device: "cpu"
     detection_threshold: 0.5
     
