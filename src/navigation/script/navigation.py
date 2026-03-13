@@ -18,10 +18,6 @@ def main():
     # Создаём навигатор
     navigator = BasicNavigator()
 
-    # # Устанавливаем начальную позицию (если нужно)
-    # initial_pose = create_pose(0.0, 0.0, 0.0)
-    # navigator.setInitialPose(initial_pose)
-
     # Ждём активации Nav2
     navigator.waitUntilNav2Active()
 
