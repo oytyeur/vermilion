@@ -14,14 +14,12 @@ class YoloDetectorNode(Node):
     def __init__(self):
         super().__init__('yolo_detector_node')
 
-        # Параметры
         self.declare_parameter('image_topic', '/camera/raw_frame')
-        self.declare_parameter('detection_threshold', 0.5)
+        self.declare_parameter('detection_threshold', 0.75)
         self.declare_parameter('publish_annotated_image', True)
         self.declare_parameter('model', 'yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
-        self.declare_parameter('enable_tracking', True)  # Включил по умолчанию для подсчёта уникальных
-        self.declare_parameter('stats_interval_sec', 5.0) # Интервал вывода статистики
+        self.declare_parameter('enable_tracking', True)
 
         self.image_topic = self.get_parameter('image_topic').value
         self.threshold = self.get_parameter('detection_threshold').value
@@ -29,7 +27,6 @@ class YoloDetectorNode(Node):
         self.model_name = self.get_parameter('model').value
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
-        self.stats_interval = self.get_parameter('stats_interval_sec').value
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -41,7 +38,6 @@ class YoloDetectorNode(Node):
         self.get_logger().info(f"Loading YOLO model: {self.model_name}")
         self.get_logger().info(f"Device: {self.device}")
         self.get_logger().info(f"Tracking: {'ON' if self.enable_tracking else 'OFF'}")
-        self.get_logger().info(f"Subscribing to: {self.image_topic} (CompressedImage)")
 
         try:
             self.model = YOLO(self.model_name)
@@ -68,30 +64,13 @@ class YoloDetectorNode(Node):
         if self.publish_annotated:
             self.annotated_pub = self.create_publisher(Image, '/camera/annotated_image', qos_profile)
 
-        # СЧЁТЧИКИ И СТАТИСТИКА
-        self.unique_people_ids = set()  # Для хранения уникальных ID треков
-        self.total_detections_count = 0 # Общее количество детекций людей
-        self.last_stats_time = self.get_clock().now()
-        
-        # Таймер для периодического вывода статистики
-        self.stats_timer = self.create_timer(
-            self.stats_interval, 
-            self.stats_callback
-        )
-        # 
+        self.get_logger().info("Нода запущена корректно")
 
-        self.get_logger().info("YOLO detector is running.")
+        self.counted_ids = set()
+        self.current_frame_ids = set()
 
-
-
-    def stats_callback(self):
-        unique_count = len(self.unique_people_ids) if self.enable_tracking else self.total_detections_count
-        id_type = "unique track IDs" if self.enable_tracking else "total detections"
-        
-        self.get_logger().info(
-            f"People detected ({id_type}): {unique_count} | "
-            f"Uptime: {(self.get_clock().now() - self.last_stats_time).nanoseconds / 1e9:.1f}s since last report"
-        )
+        self.unique_people_count = 0
+        self.unique_chairs_count = 0
 
     def listener_callback_compressed(self, msg: CompressedImage):
         try:
@@ -136,6 +115,9 @@ class YoloDetectorNode(Node):
         frame_people_count = 0
 
         if results.boxes is not None:
+
+            self.current_frame_ids.clear()
+
             for box in results.boxes:
                 confidence = float(box.conf.item())
                 if confidence < self.threshold:
@@ -144,21 +126,37 @@ class YoloDetectorNode(Node):
                 class_id = int(box.cls.item())
                 class_name = self.class_names[class_id]
 
-                # Фильтр на людей
-                if class_name != 'person':
+                if class_name not in ['person', 'chair']:
                     continue
 
+                is_new_object = False
+                track_id = None
 
-                frame_people_count += 1
-                self.total_detections_count += 1
-
-                # Обновление уникальных ID 
                 if self.enable_tracking and hasattr(box, 'id') and box.id is not None:
                     track_id = int(box.id.item())
-                    self.unique_people_ids.add(track_id)
-                    display_name = f"person#{track_id}"
+                    self.current_frame_ids.add(track_id)
+
+                    if track_id not in self.counted_ids:
+                        self.counted_ids.add(track_id)
+                        is_new_object = True
+                    if is_new_object:
+                        if class_name == 'person':
+                            self.unique_people_count += 1
+                        elif class_name == 'chair':
+                            self.unique_chairs_count += 1
+
+
                 else:
-                    display_name = "person"
+                    xyxy = box.xyxy[0].cpu().numpy()
+                    pos_id = (
+                        int(xyxy[0] // 10),
+                        int(xyxy[1] // 10)
+                    )
+                    self.current_frame_ids.add(pos_id)
+
+                    if pos_id not in self.counted_ids:
+                        self.counted_ids.add(pos_id)
+                        is_new_object = True
 
                 xyxy = box.xyxy[0].cpu().numpy()
                 x_min, y_min, x_max, y_max = xyxy
@@ -176,16 +174,22 @@ class YoloDetectorNode(Node):
                 detection.bbox.size_y = size_y
 
                 obj_hypothesis = ObjectHypothesisWithPose()
-                obj_hypothesis.hypothesis.class_id = display_name
+                obj_hypothesis.hypothesis.class_id = class_name
                 obj_hypothesis.hypothesis.score = confidence
                 detection.results.append(obj_hypothesis)
 
                 detections_msg.detections.append(detection)
                 annotated_boxes.append(xyxy)
-                annotated_labels.append(display_name)
+                annotated_labels.append(class_name)
+            
+            for old_id in list(self.counted_ids):
+                if old_id not in self.current_frame_ids:
+                    self.counted_ids.discard(old_id)
 
         self.detections_pub.publish(detections_msg)
 
+        self.get_logger().info(
+            f'Уникальных объектов: {self.unique_people_count} людей, {self.unique_chairs_count} стульев')
 
 
         if self.annotated_pub:
