@@ -3,104 +3,94 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy, QoSDurabilityPolicy
-from sensor_msgs.msg import Image
-from vision_msgs.msg import Detection2DArray, Detection2D, BoundingBox2D, ObjectHypothesisWithPose
+from sensor_msgs.msg import Image, CompressedImage
+from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
 from cv_bridge import CvBridge
 from ultralytics import YOLO
-import torch
+import torch, cv2 
+import numpy as np
 
 class YoloDetectorNode(Node):
     def __init__(self):
         super().__init__('yolo_detector_node')
 
-        # Объявление параметров
-        self.declare_parameter('image_topic', '/camera/image_raw') 
-        self.declare_parameter('detection_threshold', 0.5)
+        self.declare_parameter('image_topic', '/camera/raw_frame')
+        self.declare_parameter('detection_threshold', 0.75)
         self.declare_parameter('publish_annotated_image', True)
         self.declare_parameter('model', 'yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
-        self.declare_parameter('target_classes', '')
-        self.declare_parameter('qos_depth', 1)
-        self.declare_parameter('reliability', 'best_effort')
 
-        # Получение параметров
         self.image_topic = self.get_parameter('image_topic').value
         self.threshold = self.get_parameter('detection_threshold').value
         self.publish_annotated = self.get_parameter('publish_annotated_image').value
         self.model_name = self.get_parameter('model').value
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
-        self.target_classes = self.get_parameter('target_classes').value
-        qos_depth = self.get_parameter('qos_depth').value
-        reliability_str = self.get_parameter('reliability').value
-
-        if isinstance(self.target_classes, str):
-            self.target_classes = [cls.strip() for cls in self.target_classes.split(',') if cls.strip()]
-
-        # Настройка QoS для подписки
-        reliability = (
-            QoSReliabilityPolicy.RELIABLE
-            if reliability_str.lower() == 'reliable'
-            else QoSReliabilityPolicy.BEST_EFFORT
-        )
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
-            depth=qos_depth,
-            reliability=reliability,
+            depth=10,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
             durability=QoSDurabilityPolicy.VOLATILE
         )
 
-        # Логирование
         self.get_logger().info(f"Loading YOLO model: {self.model_name}")
         self.get_logger().info(f"Device: {self.device}")
-        self.get_logger().info(f"Threshold: {self.threshold}")
         self.get_logger().info(f"Tracking: {'ON' if self.enable_tracking else 'OFF'}")
-        self.get_logger().info(f"Target classes: {self.target_classes if self.target_classes else 'all'}")
-        self.get_logger().info(f"QoS: {reliability_str.upper()}, depth={qos_depth}")
 
-        # Загрузка модели
         try:
             self.model = YOLO(self.model_name)
             self.model.to(self.device)
             self.class_names = self.model.model.names
-            self.get_logger().info(f"Model '{self.model_name}' loaded successfully.")
+            self.get_logger().info(f"Model loaded successfully.")
         except Exception as e:
             self.get_logger().error(f"Failed to load model: {e}")
             rclpy.shutdown()
             return
 
-        # Инициализация
         self.bridge = CvBridge()
 
-        # Подписка с QoS
         self.subscription = self.create_subscription(
-            Image,
+            CompressedImage,
             self.image_topic,
-            self.listener_callback,
+            self.listener_callback_compressed,
             qos_profile
         )
-        self.subscription
 
-        # Публикация детекций
-        self.detections_pub = self.create_publisher(Detection2DArray, 'detected_objects', qos_profile)
+        self.detections_pub = self.create_publisher(Detection2DArray, '/detections', qos_profile)
 
-        # Публикация аннотированного изображения
         self.annotated_pub = None
         if self.publish_annotated:
-            self.annotated_pub = self.create_publisher(Image, 'annotated_image', qos_profile)
+            self.annotated_pub = self.create_publisher(Image, '/camera/annotated_image', qos_profile)
 
-        self.get_logger().info("🟢 YOLO detector is running and listening...")
+        self.get_logger().info("Нода запущена корректно")
 
-    def listener_callback(self, msg: Image):
+        self.counted_ids = set()
+        self.current_frame_ids = set()
+
+        self.unique_people_count = 0
+        self.unique_chairs_count = 0
+
+    def listener_callback_compressed(self, msg: CompressedImage):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        except Exception as e:
-            self.get_logger().error(f"Failed to convert image: {e}")
-            return
+            jpg_data = np.frombuffer(msg.data, dtype=np.uint8)
+            cv_image = cv2.imdecode(jpg_data, cv2.IMREAD_COLOR)
+            
+            if cv_image is None:
+                self.get_logger().warn('Failed to decode image')
+                return
 
-        # Настройка аргументов для инференса
+            from std_msgs.msg import Header
+            header = Header()
+            header.stamp = self.get_clock().now().to_msg()
+            header.frame_id = 'camera_link'
+            
+            self.process_frame(cv_image, header)
+        except Exception as e:
+            self.get_logger().error(f"Error processing frame: {e}")
+
+    def process_frame(self, cv_image, header):
         infer_args = {
             'source': cv_image,
             'verbose': False,
@@ -118,14 +108,16 @@ class YoloDetectorNode(Node):
             return
 
         detections_msg = Detection2DArray()
-        detections_msg.header = msg.header
+        detections_msg.header = header
 
-        # Для аннотации
         annotated_boxes = []
         annotated_labels = []
+        frame_people_count = 0
 
-        # <--- ДОБАВЛЕНА ПРОВЕРКА на None
         if results.boxes is not None:
+
+            self.current_frame_ids.clear()
+
             for box in results.boxes:
                 confidence = float(box.conf.item())
                 if confidence < self.threshold:
@@ -134,11 +126,38 @@ class YoloDetectorNode(Node):
                 class_id = int(box.cls.item())
                 class_name = self.class_names[class_id]
 
-                # Фильтр по классам
-                if self.target_classes and class_name not in self.target_classes:
+                if class_name not in ['person', 'chair']:
                     continue
 
-                # Вычисление bounding box
+                is_new_object = False
+                track_id = None
+
+                if self.enable_tracking and hasattr(box, 'id') and box.id is not None:
+                    track_id = int(box.id.item())
+                    self.current_frame_ids.add(track_id)
+
+                    if track_id not in self.counted_ids:
+                        self.counted_ids.add(track_id)
+                        is_new_object = True
+                    if is_new_object:
+                        if class_name == 'person':
+                            self.unique_people_count += 1
+                        elif class_name == 'chair':
+                            self.unique_chairs_count += 1
+
+
+                else:
+                    xyxy = box.xyxy[0].cpu().numpy()
+                    pos_id = (
+                        int(xyxy[0] // 10),
+                        int(xyxy[1] // 10)
+                    )
+                    self.current_frame_ids.add(pos_id)
+
+                    if pos_id not in self.counted_ids:
+                        self.counted_ids.add(pos_id)
+                        is_new_object = True
+
                 xyxy = box.xyxy[0].cpu().numpy()
                 x_min, y_min, x_max, y_max = xyxy
                 center_x = float((x_min + x_max) / 2)
@@ -146,15 +165,8 @@ class YoloDetectorNode(Node):
                 size_x = float(x_max - x_min)
                 size_y = float(y_max - y_min)
 
-                # Формирование class_id с ID
-                display_name = class_name
-                if self.enable_tracking and hasattr(box, 'id') and box.id is not None:
-                    track_id = int(box.id.item())
-                    display_name = f"{class_name}#{track_id}"
-
-                # Создание Detection2D
                 detection = Detection2D()
-                detection.header = msg.header
+                detection.header = header
                 detection.bbox.center.position.x = center_x
                 detection.bbox.center.position.y = center_y
                 detection.bbox.center.theta = 0.0
@@ -162,19 +174,24 @@ class YoloDetectorNode(Node):
                 detection.bbox.size_y = size_y
 
                 obj_hypothesis = ObjectHypothesisWithPose()
-                obj_hypothesis.hypothesis.class_id = display_name
+                obj_hypothesis.hypothesis.class_id = class_name
                 obj_hypothesis.hypothesis.score = confidence
                 detection.results.append(obj_hypothesis)
 
                 detections_msg.detections.append(detection)
-
                 annotated_boxes.append(xyxy)
-                annotated_labels.append(display_name)
+                annotated_labels.append(class_name)
+            
+            for old_id in list(self.counted_ids):
+                if old_id not in self.current_frame_ids:
+                    self.counted_ids.discard(old_id)
 
-        # Публикация детекций
         self.detections_pub.publish(detections_msg)
 
-        # Публикация аннотированного изображения
+        self.get_logger().info(
+            f'Уникальных объектов: {self.unique_people_count} людей, {self.unique_chairs_count} стульев')
+
+
         if self.annotated_pub:
             try:
                 from ultralytics.utils.plotting import Annotator
@@ -184,7 +201,7 @@ class YoloDetectorNode(Node):
                 annotated_frame = annotator.result()
 
                 annotated_msg = self.bridge.cv2_to_imgmsg(annotated_frame, encoding='bgr8')
-                annotated_msg.header = msg.header
+                annotated_msg.header = header
                 self.annotated_pub.publish(annotated_msg)
             except Exception as e:
                 self.get_logger().error(f"Failed to publish annotated image: {e}")

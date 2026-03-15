@@ -108,6 +108,21 @@ def generate_launch_description():
 
         IncludeLaunchDescription( # лаунчер с детецией
             PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('go2_sdk_videostream'),
+                            'launch', 'videostream.launch.py')
+            ]),
+        ),
+
+
+        ###########################################################
+        ###########################################################
+        ###########################################################
+        ###########################################################
+        ###########################################################
+
+
+        IncludeLaunchDescription( # лаунчер с детецией
+            PythonLaunchDescriptionSource([
                 os.path.join(get_package_share_directory('yolo_detector'),
                             'launch', 'detector.launch.py')
             ]),

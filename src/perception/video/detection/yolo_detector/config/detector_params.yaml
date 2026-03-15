@@ -1,10 +1,18 @@
 yolo_detector_node:
   ros__parameters:
-    image_topic: "/camera/image_raw"   #
-    detection_threshold: 0.5
-    publish_annotated_image: true
-    model: "yolov8n.pt"
+    # Читаемый топик
+    image_topic: "/camera/raw_frame"
+
+    # Путь до модели и выбор девайсв
+    model: "/home/oytyeur/workspace/MGTS/Unitree/Go2Edu/vermilion/yolov8n.pt"
+    # model: "/home/aboba/vermilion/yolov8n.pt"
+    device: "cpu"
+
+    # Настройка модели
+    detection_threshold: 0.75
     enable_tracking: true
-    target_classes: ''
-    qos_depth: 1
+    publish_annotated_image: true
+    # Найстройка рвиза
+    qos_depth: 10
     reliability: "best_effort"
+    
