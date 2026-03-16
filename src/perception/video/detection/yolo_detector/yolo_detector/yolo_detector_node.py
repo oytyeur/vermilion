@@ -69,8 +69,8 @@ class YoloDetectorNode(Node):
         self.counted_ids = set()
         self.current_frame_ids = set()
 
-        self.unique_people_count = 0
-        self.unique_chairs_count = 0
+        self.unique_people_count = 1
+        self.unique_chairs_count = 1
 
     def listener_callback_compressed(self, msg: CompressedImage):
         try:
@@ -138,6 +138,7 @@ class YoloDetectorNode(Node):
 
                     if track_id not in self.counted_ids:
                         self.counted_ids.add(track_id)
+                        self.get_logger().info(f'Уникальных объектов: {self.unique_people_count} людей')
                         is_new_object = True
                     if is_new_object:
                         if class_name == 'person':
@@ -188,8 +189,8 @@ class YoloDetectorNode(Node):
 
         self.detections_pub.publish(detections_msg)
 
-        self.get_logger().info(
-            f'Уникальных объектов: {self.unique_people_count} людей, {self.unique_chairs_count} стульев')
+        # self.get_logger().info(
+        #     f'Уникальных объектов: {self.unique_people_count} людей, {self.unique_chairs_count} стульев')
 
 
         if self.annotated_pub:
