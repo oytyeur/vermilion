@@ -137,7 +137,7 @@ class YoloDetectorNode(Node):
 
                     if track_id not in self.counted_ids:
                         self.counted_ids.add(track_id)
-                        self.get_logger().info(f'Уникальных объектов: {self.unique_people_count} людей')
+                        self.get_logger().info(f'Уникальных появлений: {self.unique_people_count} людей')
                         is_new_object = True
                     if is_new_object:
                         self.unique_people_count += 1
