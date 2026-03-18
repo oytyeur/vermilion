@@ -20,6 +20,7 @@ class YoloDetectorNode(Node):
         self.declare_parameter('model', 'yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
+        self.declare_parameter('tracker', 'botsort.yaml')
 
         self.image_topic = self.get_parameter('image_topic').value
         self.threshold = self.get_parameter('detection_threshold').value
@@ -27,6 +28,7 @@ class YoloDetectorNode(Node):
         self.model_name = self.get_parameter('model').value
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
+        self.tracker = self.get_parameter('tracker').value
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -98,7 +100,7 @@ class YoloDetectorNode(Node):
 
         try:
             if self.enable_tracking:
-                infer_args['tracker'] = 'bytetrack.yaml'
+                infer_args['tracker'] = self.tracker
                 results = self.model.track(**infer_args)[0]
             else:
                 results = self.model(**infer_args)[0]
