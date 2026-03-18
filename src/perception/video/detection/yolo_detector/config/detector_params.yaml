@@ -5,9 +5,8 @@ yolo_detector_node:
 
     # Путь до модели и выбор девайсв
     model: "src/perception/video/detection/yolo_detector/yolov8n.pt"
-    # model: "/home/oytyeur/workspace/MGTS/Unitree/Go2Edu/vermilion/yolov8n.pt"
-    # model: "/home/aboba/vermilion/yolov8n.pt"
-    device: "cpu"
+    # device: "cpu"
+    device: "cuda"
 
     # Настройка модели
     detection_threshold: 0.5
