@@ -1,10 +1,35 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<!-- <?xml version="1.0" encoding="UTF-8" ?>
 <CycloneDDS>
-    <Domain Id="any">
+    <Domain Id="123">
         <General>
             <Interfaces>
-                <NetworkInterface name="enp2s0" priority="default" multicast="default" />
+                <NetworkInterface name="wlp3s0" priority="default" multicast="default" />
             </Interfaces>
         </General>
+    </Domain>
+</CycloneDDS> -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<CycloneDDS>
+    <Domain Id="123">
+        <General>
+            <Interfaces>
+                <!-- <NetworkInterface name="wlp3s0" priority="default"/> -->
+                <NetworkInterface address="0.0.0.0"/>
+            </Interfaces>
+            <AllowMulticast>true</AllowMulticast>
+            <MaxMessageSize>50MB</MaxMessageSize>
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <Peers>
+                <!-- Добавьте IP‑адреса всех ПК в сети -->
+                <Peer address="192.168.50.20:7020"/>
+                <Peer address="192.168.50.120:7120"/>
+            </Peers>
+        </Discovery>
+        <Internal>
+            <SocketReceiveBufferSize>50MB</SocketReceiveBufferSize>
+        </Internal>
     </Domain>
 </CycloneDDS>
