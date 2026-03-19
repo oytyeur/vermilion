@@ -3,9 +3,9 @@ import os
 import numpy as np
 
 input_folder = 'dataset/image'
-output_folder = 'dataset/train'
-output_images_folder = os.path.join(output_folder, 'image')
-output_labels_folder = os.path.join(output_folder, 'label')
+output_folder = 'dataset/ready/train'
+output_images_folder = os.path.join(output_folder, 'images')
+output_labels_folder = os.path.join(output_folder, 'labels')
 
 os.makedirs(output_images_folder, exist_ok=True)
 os.makedirs(output_labels_folder, exist_ok=True)
