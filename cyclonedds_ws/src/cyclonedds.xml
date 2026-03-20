@@ -14,18 +14,20 @@
     <Domain Id="123">
         <General>
             <Interfaces>
-                <!-- <NetworkInterface name="wlp3s0" priority="default"/> -->
-                <NetworkInterface address="0.0.0.0"/>
+                <NetworkInterface name="wlp3s0" priority="default"/>
+                <!-- <NetworkInterface address="0.0.0.0"/> -->
             </Interfaces>
-            <AllowMulticast>spdp</AllowMulticast>
+            <AllowMulticast>true</AllowMulticast>
             <MaxMessageSize>50MB</MaxMessageSize>
         </General>
         <Discovery>
             <ParticipantIndex>auto</ParticipantIndex>
             <Peers>
                 <!-- Добавьте IP‑адреса всех ПК в сети -->
-                <Peer address="192.168.50.20:7020"/>
-                <Peer address="192.168.50.120:7120"/>
+                <!-- <Peer address="192.168.50.18"/>
+                <Peer address="192.168.50.45"/> -->
+                <Peer address="192.168.1.18"/>
+                <Peer address="192.168.1.45"/>
             </Peers>
         </Discovery>
         <Internal>
