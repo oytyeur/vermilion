@@ -10,8 +10,8 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 # 'network_interface': 'enx00e04c6803d4',
-                # 'network_interface': 'enp2s0',
-                'network_interface': 'wlp3s0',
+                'network_interface': 'enp2s0',
+                # 'network_interface': 'wlp3s0',
                 'publish_rate': 15.0
             }]
         )
