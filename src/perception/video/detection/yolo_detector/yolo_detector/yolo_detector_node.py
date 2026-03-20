@@ -21,6 +21,7 @@ class YoloDetectorNode(Node):
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
         self.declare_parameter('tracker', 'botsort.yaml')
+        self.declare_parameter('search_rubicks_cube', False)
 
         self.image_topic = self.get_parameter('image_topic').value
         self.threshold = self.get_parameter('detection_threshold').value
@@ -29,6 +30,7 @@ class YoloDetectorNode(Node):
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
         self.tracker = self.get_parameter('tracker').value
+        self.search_rubicks_cube = self.get_parameter('search_rubicks_cube').value
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -127,8 +129,13 @@ class YoloDetectorNode(Node):
                 class_id = int(box.cls.item())
                 class_name = self.class_names[class_id]
 
-                if class_name not in ['person']:
-                    continue
+                if self.search_rubicks_cube:
+                    if class_name != 'rubicks_cube':
+                        continue
+                else:    
+                    if class_name != 'person':
+                        continue
+
 
                 is_new_object = False
                 track_id = None
