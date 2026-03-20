@@ -17,7 +17,7 @@
                 <!-- <NetworkInterface name="wlp3s0" priority="default"/> -->
                 <NetworkInterface address="0.0.0.0"/>
             </Interfaces>
-            <AllowMulticast>true</AllowMulticast>
+            <AllowMulticast>spdp</AllowMulticast>
             <MaxMessageSize>50MB</MaxMessageSize>
         </General>
         <Discovery>
