@@ -4,12 +4,12 @@ yolo_detector_node:
     image_topic: "/camera/raw_frame"
 
     # Путь до модели и выбор девайсв
-    model: "src/perception/video/detection/yolo_detector/best2.pt"
+    model: "src/perception/video/detection/yolo_detector/model/best2.pt"
     # device: "cpu"
     device: "cuda"
 
     # Настройка модели
-    detection_threshold: 0.5
+    detection_threshold: 0.9
     enable_tracking: true
     tracker: "src/perception/video/detection/yolo_detector/config/custom_bytetrack.yaml"
     publish_annotated_image: true

@@ -17,7 +17,7 @@ class YoloDetectorNode(Node):
         self.declare_parameter('image_topic', '/camera/raw_frame')
         self.declare_parameter('detection_threshold', 0.75)
         self.declare_parameter('publish_annotated_image', True)
-        self.declare_parameter('model', 'yolov8n.pt')
+        self.declare_parameter('model', 'model/yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
         self.declare_parameter('tracker', 'botsort.yaml')
@@ -146,7 +146,7 @@ class YoloDetectorNode(Node):
 
                     if track_id not in self.counted_ids:
                         self.counted_ids.add(track_id)
-                        self.get_logger().info(f'Уникальных появлений: {self.unique_people_count} людей')
+                        self.get_logger().info(f'Уникальных появлений: {self.unique_people_count}')
                         is_new_object = True
                     if is_new_object:
                         self.unique_people_count += 1
