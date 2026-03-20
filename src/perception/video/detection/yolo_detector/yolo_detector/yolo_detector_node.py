@@ -20,6 +20,7 @@ class YoloDetectorNode(Node):
         self.declare_parameter('model', 'yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
+        self.declare_parameter('tracker', 'botsort.yaml')
 
         self.image_topic = self.get_parameter('image_topic').value
         self.threshold = self.get_parameter('detection_threshold').value
@@ -27,6 +28,7 @@ class YoloDetectorNode(Node):
         self.model_name = self.get_parameter('model').value
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
+        self.tracker = self.get_parameter('tracker').value
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -69,8 +71,7 @@ class YoloDetectorNode(Node):
         self.counted_ids = set()
         self.current_frame_ids = set()
 
-        self.unique_people_count = 0
-        self.unique_chairs_count = 0
+        self.unique_people_count = 1
 
     def listener_callback_compressed(self, msg: CompressedImage):
         try:
@@ -99,7 +100,7 @@ class YoloDetectorNode(Node):
 
         try:
             if self.enable_tracking:
-                infer_args['tracker'] = 'bytetrack.yaml'
+                infer_args['tracker'] = self.tracker
                 results = self.model.track(**infer_args)[0]
             else:
                 results = self.model(**infer_args)[0]
@@ -126,7 +127,7 @@ class YoloDetectorNode(Node):
                 class_id = int(box.cls.item())
                 class_name = self.class_names[class_id]
 
-                if class_name not in ['person', 'chair']:
+                if class_name not in ['person']:
                     continue
 
                 is_new_object = False
@@ -138,13 +139,10 @@ class YoloDetectorNode(Node):
 
                     if track_id not in self.counted_ids:
                         self.counted_ids.add(track_id)
+                        self.get_logger().info(f'Уникальных появлений: {self.unique_people_count} людей')
                         is_new_object = True
                     if is_new_object:
-                        if class_name == 'person':
-                            self.unique_people_count += 1
-                        elif class_name == 'chair':
-                            self.unique_chairs_count += 1
-
+                        self.unique_people_count += 1
 
                 else:
                     xyxy = box.xyxy[0].cpu().numpy()
@@ -187,9 +185,6 @@ class YoloDetectorNode(Node):
                     self.counted_ids.discard(old_id)
 
         self.detections_pub.publish(detections_msg)
-
-        self.get_logger().info(
-            f'Уникальных объектов: {self.unique_people_count} людей, {self.unique_chairs_count} стульев')
 
 
         if self.annotated_pub:
