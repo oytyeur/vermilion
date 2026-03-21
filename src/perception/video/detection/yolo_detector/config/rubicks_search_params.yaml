@@ -4,7 +4,7 @@ yolo_detector_node:
     image_topic: "/camera/raw_frame"
 
     # Путь до модели и выбор девайсв
-    model: "src/perception/video/detection/yolo_detector/model/yolov8n.pt"
+    model: "src/perception/video/detection/yolo_detector/model/best2.pt"
     # device: "cpu"
     device: "cuda"
 
@@ -16,4 +16,5 @@ yolo_detector_node:
     # Найстройка рвиза
     qos_depth: 10
     reliability: "best_effort"
+    search_rubicks_cube: true
     
