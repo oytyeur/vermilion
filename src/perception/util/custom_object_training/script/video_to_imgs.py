@@ -3,9 +3,9 @@ import os
 import time
 
 # Путь к видеофайлу
-video_path = 'dataset/video/001.mp4'
+video_path = 'dataset_1/dataset_video.mp4'
 # Папка для сохранения изображений
-output_folder = 'dataset/image'
+output_folder = 'dataset_1/images'
 # Интервал между кадрами (каждый n-й кадр будет сохранен)
 frame_interval = 1  # Можно изменить на 2, 5 и т.д.
 
@@ -18,7 +18,7 @@ if not cap.isOpened():
     exit()
 
 frame_count = 0
-saved_count = 3118
+saved_count = 0
 
 while True:
     ret, frame = cap.read()

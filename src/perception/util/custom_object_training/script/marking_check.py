@@ -2,11 +2,11 @@ import cv2
 import os
 
 # Папки с изображениями и метками
-images_path = 'dataset/train/image'
-labels_path = 'dataset/train/label'
+images_path = 'dataset_1/train/images'
+labels_path = 'dataset_1/train/labels'
 
 # Папка для сохранения изображений с нарисованными прямоугольниками
-output_folder = 'dataset/train/checked_image'
+output_folder = 'dataset_1/train/checked_images'
 os.makedirs(output_folder, exist_ok=True)
 
 # Цвета для классов (можно добавить больше цветов, если классов больше)
