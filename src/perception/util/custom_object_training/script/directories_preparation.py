@@ -7,7 +7,7 @@ test_percent = 0.2  # Процент данных для тестировани�
 valid_percent = 0.1  # Процент данных для проверки
 
 # Путь к папке с данными
-dataset_path = 'dataset_1'
+dataset_path = 'training'
 train_images_path = os.path.join(dataset_path, 'train', 'images')
 train_labels_path = os.path.join(dataset_path, 'train', 'labels')
 valid_images_path = os.path.join(dataset_path, 'valid', 'images')

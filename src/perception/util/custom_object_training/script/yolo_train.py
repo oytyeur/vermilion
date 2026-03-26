@@ -4,10 +4,10 @@ from ultralytics import YOLO
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 data_path = os.path.join(current_dir, 'data.yaml')
-model = YOLO(os.path.join(current_dir, 'yolov8n.pt'))
+model = YOLO(os.path.join(current_dir, 'yolo26n.pt'))
 
 
-epochs = 5
+epochs = 200
 batch = 16
 imgsz = 640
 if __name__ == '__main__':
@@ -15,5 +15,5 @@ if __name__ == '__main__':
                       epochs=epochs, 
                       batch=batch, 
                       imgsz=imgsz, 
-                      name='red_ball',
+                      name='redball',
                       device='cuda')

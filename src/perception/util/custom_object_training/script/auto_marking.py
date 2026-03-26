@@ -2,15 +2,15 @@ import cv2
 import os
 import numpy as np
 
-input_folder = 'dataset_1/images'
-output_folder = 'dataset_1/train'
+input_folder = 'images'
+output_folder = 'train'
 output_images_folder = os.path.join(output_folder, 'images')
 output_labels_folder = os.path.join(output_folder, 'labels')
 
 os.makedirs(output_images_folder, exist_ok=True)
 os.makedirs(output_labels_folder, exist_ok=True)
 
-lower_hsv = np.array([140, 125, 110])
+lower_hsv = np.array([110, 65, 95])
 upper_hsv = np.array([180, 255, 255])
 
 def find_mask(image, lower_hsv, upper_hsv):

@@ -14,7 +14,7 @@ colors = [
 ]
 
 # Открытие исходного видеофайла
-input_video_path = 'dataset_video.mp4'
+input_video_path = 'redball_test_3.mp4'
 capture = cv2.VideoCapture(input_video_path)
 
 # Чтение параметров видео
@@ -23,7 +23,7 @@ width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 # Настройка выходного файла
-output_video_path = 'detect.mp4'
+output_video_path = 'test_result_3.mp4'
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
