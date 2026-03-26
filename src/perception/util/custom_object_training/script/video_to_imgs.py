@@ -3,9 +3,9 @@ import os
 import time
 
 # Путь к видеофайлу
-video_path = 'dataset/video/001.mp4'
+video_path = 'redball_2.mp4'
 # Папка для сохранения изображений
-output_folder = 'dataset/image'
+output_folder = 'redball_2/images'
 # Интервал между кадрами (каждый n-й кадр будет сохранен)
 frame_interval = 1  # Можно изменить на 2, 5 и т.д.
 
@@ -18,7 +18,7 @@ if not cap.isOpened():
     exit()
 
 frame_count = 0
-saved_count = 3118
+saved_count = 4021
 
 while True:
     ret, frame = cap.read()

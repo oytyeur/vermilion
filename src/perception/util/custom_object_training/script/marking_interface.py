@@ -16,7 +16,7 @@ cv2.createTrackbar('s2', 'settings', 255, 255, nothing)
 cv2.createTrackbar('v2', 'settings', 255, 255, nothing)
 
 while True:
-    img = cv2.imread('dataset/image/00000.jpg')
+    img = cv2.imread('images/08916.jpg')
     h,w,_=img.shape
     img=cv2.resize(img,(w//5,h//5))
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV )
