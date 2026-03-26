@@ -21,7 +21,8 @@ class YoloDetectorNode(Node):
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
         self.declare_parameter('tracker', 'botsort.yaml')
-        self.declare_parameter('search_rubicks_cube', False)
+        # self.declare_parameter('search_rubicks_cube', False)
+        # self.declare_parameter('search_redball', False)
 
         self.image_topic = self.get_parameter('image_topic').value
         self.threshold = self.get_parameter('detection_threshold').value
@@ -30,7 +31,8 @@ class YoloDetectorNode(Node):
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
         self.tracker = self.get_parameter('tracker').value
-        self.search_rubicks_cube = self.get_parameter('search_rubicks_cube').value
+        # self.search_rubicks_cube = self.get_parameter('search_rubicks_cube').value
+        # self.search_redball = self.get_parameter('search_redball').value
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -70,10 +72,10 @@ class YoloDetectorNode(Node):
 
         self.get_logger().info("Нода запущена корректно")
 
-        self.counted_ids = set()
-        self.current_frame_ids = set()
+        # self.counted_ids = set()
+        # self.current_frame_ids = set()
 
-        self.unique_people_count = 1
+        # self.unique_people_count = 1
 
     def listener_callback_compressed(self, msg: CompressedImage):
         try:
@@ -115,53 +117,45 @@ class YoloDetectorNode(Node):
 
         annotated_boxes = []
         annotated_labels = []
-        frame_people_count = 0
+        # frame_people_count = 0
 
         if results.boxes is not None:
 
-            self.current_frame_ids.clear()
+            # self.current_frame_ids.clear()
 
             for box in results.boxes:
                 confidence = float(box.conf.item())
-                if confidence < self.threshold:
-                    continue
+                # if confidence < self.threshold:
+                #     continue
 
                 class_id = int(box.cls.item())
                 class_name = self.class_names[class_id]
 
-                if self.search_rubicks_cube:
-                    if class_name != 'rubicks_cube':
-                        continue
-                else:    
-                    if class_name != 'person':
-                        continue
+                # is_new_object = False
+                # track_id = None
 
+                # if self.enable_tracking and hasattr(box, 'id') and box.id is not None:
+                #     track_id = int(box.id.item())
+                #     self.current_frame_ids.add(track_id)
 
-                is_new_object = False
-                track_id = None
+                #     if track_id not in self.counted_ids:
+                #         self.counted_ids.add(track_id)
+                #         self.get_logger().info(f'Уникальных появлений: {self.unique_people_count}')
+                #         is_new_object = True
+                #     if is_new_object:
+                #         self.unique_people_count += 1
 
-                if self.enable_tracking and hasattr(box, 'id') and box.id is not None:
-                    track_id = int(box.id.item())
-                    self.current_frame_ids.add(track_id)
+                # else:
+                #     xyxy = box.xyxy[0].cpu().numpy()
+                #     pos_id = (
+                #         int(xyxy[0] // 10),
+                #         int(xyxy[1] // 10)
+                #     )
+                #     self.current_frame_ids.add(pos_id)
 
-                    if track_id not in self.counted_ids:
-                        self.counted_ids.add(track_id)
-                        self.get_logger().info(f'Уникальных появлений: {self.unique_people_count}')
-                        is_new_object = True
-                    if is_new_object:
-                        self.unique_people_count += 1
-
-                else:
-                    xyxy = box.xyxy[0].cpu().numpy()
-                    pos_id = (
-                        int(xyxy[0] // 10),
-                        int(xyxy[1] // 10)
-                    )
-                    self.current_frame_ids.add(pos_id)
-
-                    if pos_id not in self.counted_ids:
-                        self.counted_ids.add(pos_id)
-                        is_new_object = True
+                #     # if pos_id not in self.counted_ids:
+                #     #     self.counted_ids.add(pos_id)
+                #     #     is_new_object = True
 
                 xyxy = box.xyxy[0].cpu().numpy()
                 x_min, y_min, x_max, y_max = xyxy
@@ -185,11 +179,11 @@ class YoloDetectorNode(Node):
 
                 detections_msg.detections.append(detection)
                 annotated_boxes.append(xyxy)
-                annotated_labels.append(class_name)
+                annotated_labels.append(class_name + f': {confidence:03f}')
             
-            for old_id in list(self.counted_ids):
-                if old_id not in self.current_frame_ids:
-                    self.counted_ids.discard(old_id)
+            # for old_id in list(self.counted_ids):
+            #     if old_id not in self.current_frame_ids:
+            #         self.counted_ids.discard(old_id)
 
         self.detections_pub.publish(detections_msg)
 
