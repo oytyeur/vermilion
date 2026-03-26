@@ -179,7 +179,7 @@ class YoloDetectorNode(Node):
 
                 detections_msg.detections.append(detection)
                 annotated_boxes.append(xyxy)
-                annotated_labels.append(class_name + str(confidence))
+                annotated_labels.append(class_name + f': {confidence:03f}')
             
             # for old_id in list(self.counted_ids):
             #     if old_id not in self.current_frame_ids:
