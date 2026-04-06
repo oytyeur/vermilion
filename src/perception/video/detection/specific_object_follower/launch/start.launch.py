@@ -20,7 +20,10 @@ def generate_launch_description():
             remappings=[
                 ('input', '/detections')
             ],
-            parameters=[{'conf_threshold': 1.0}] # для карты лучше выставить побольше (10 сек было хорошо)
+            parameters=[{
+                'conf_threshold': 0.8,
+                'spec_obj_name': 'redball'
+            }] 
         ),
     ]
     
