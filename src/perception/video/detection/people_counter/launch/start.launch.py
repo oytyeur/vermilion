@@ -20,6 +20,8 @@ def generate_launch_description():
             name='people_counter_node',
             remappings=[
                 ('input', '/detections'),
+                ('output', '/person_counter'),
+                ('raw_frame', '/camera/raw_frame')
             ],
             parameters=[{'conf_threshold': 0.2}]
         )
