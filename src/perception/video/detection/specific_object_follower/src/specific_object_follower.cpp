@@ -49,6 +49,7 @@ void SpecificObjectFollower::detectionArrayCallback(const Detection2DArr::ConstS
                 x = valid_detection.bbox.center.position.x;
                 // err = this->CENTRE_X - x;
                 w = (this->CENTRE_X - x) * this->Kp;
+                has_valid_obj = true;
             }
         }
     }

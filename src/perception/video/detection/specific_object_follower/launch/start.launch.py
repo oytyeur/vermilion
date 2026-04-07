@@ -21,7 +21,7 @@ def generate_launch_description():
                 ('input', '/detections')
             ],
             parameters=[{
-                'conf_threshold': 0.8,
+                'conf_threshold': 0.9,
                 'spec_obj_name': 'redball'
             }] 
         ),

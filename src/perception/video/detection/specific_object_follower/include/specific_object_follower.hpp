@@ -28,7 +28,7 @@ class SpecificObjectFollower : public rclcpp::Node {
         const double MIN_X = 0.0;
         const double MAX_X = 1920.0;
         const double CENTRE_X = MAX_X * 0.5;
-        const double abs_w_max = M_PI / 3 ;
+        const double abs_w_max = M_PI / 2;
         const double Kp = abs_w_max / (CENTRE_X - MIN_X);
 
 };
