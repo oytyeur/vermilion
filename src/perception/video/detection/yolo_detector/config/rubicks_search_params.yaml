@@ -9,12 +9,11 @@ yolo_detector_node:
     device: "cuda"
 
     # Настройка модели
-    # detection_threshold: 0.9
-    enable_tracking: true
+    detection_threshold: 0.5
+    enable_tracking: false
     tracker: "src/perception/video/detection/yolo_detector/config/custom_bytetrack.yaml"
     publish_annotated_image: true
     # Найстройка рвиза
     qos_depth: 10
     reliability: "best_effort"
-    # search_rubicks_cube: true
     
