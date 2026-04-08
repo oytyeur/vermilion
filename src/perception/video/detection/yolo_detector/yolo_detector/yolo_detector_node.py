@@ -16,7 +16,7 @@ class YoloDetectorNode(Node):
         super().__init__('yolo_detector_node')
 
         self.declare_parameter('image_topic', '/camera/raw_frame')
-        self.declare_parameter('detection_threshold', 0.75)
+        self.declare_parameter('detection_threshold', 0.5)
         self.declare_parameter('publish_annotated_image', True)
         self.declare_parameter('model', 'model/yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
@@ -24,7 +24,7 @@ class YoloDetectorNode(Node):
         self.declare_parameter('tracker', 'botsort.yaml')
 
         self.image_topic = self.get_parameter('image_topic').value
-        self.threshold = self.get_parameter('detection_threshold').value
+        self.detection_threshold = self.get_parameter('detection_threshold').value
         self.publish_annotated = self.get_parameter('publish_annotated_image').value
         self.model_name = self.get_parameter('model').value
         self.device = self.get_parameter('device').value
@@ -112,6 +112,8 @@ class YoloDetectorNode(Node):
 
         if results.boxes is not None:
             for box in results.boxes:
+                if box.conf.item() < self.detection_threshold:
+                    continue
                 confidence = float(box.conf.item())
 
                 class_id = int(box.cls.item())
@@ -131,7 +133,8 @@ class YoloDetectorNode(Node):
                 detection.bbox.center.theta = 0.0
                 detection.bbox.size_x = size_x
                 detection.bbox.size_y = size_y
-                detection.id = str(box.id.item())
+                if box.id:
+                    detection.id = str(box.id.item())
 
                 obj_hypothesis = ObjectHypothesisWithPose()
                 obj_hypothesis.hypothesis.class_id = class_name
