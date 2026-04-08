@@ -23,7 +23,7 @@ def generate_launch_description():
                 ('output', '/person_counter'),
                 ('raw_frame', '/camera/raw_frame')
             ],
-            parameters=[{'conf_threshold': 0.2}]
+            parameters=[{'conf_threshold': 0.5}]
         )
     ]
     

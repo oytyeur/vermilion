@@ -17,6 +17,7 @@ PeopleCounter::PeopleCounter(const rclcpp::NodeOptions& node_options) :
                                                   std::bind(&PeopleCounter::updatePersonCounter,
                                                             this,
                                                             std::placeholders::_1));
+
     
     this->image_pub_ = 
         this->create_publisher<Image>("output",
@@ -28,13 +29,13 @@ PeopleCounter::PeopleCounter(const rclcpp::NodeOptions& node_options) :
 };
 
 void PeopleCounter::imageCallback(const CompressedImage::ConstSharedPtr& img_msg) {
-    std::lock_guard<std::mutex> lock(imgage_mutex_);
+    // std::lock_guard<std::mutex> lock(image_mutex_);
     cv_image_ = img_msg;
 }
     
 void PeopleCounter::updatePersonCounter(const Detection2DArr::ConstSharedPtr detect_msg) {
     std::vector<Detection2D> det_arr = detect_msg->detections;
-    std::lock_guard<std::mutex> lock(imgage_mutex_);
+    // std::lock_guard<std::mutex> lock(image_mutex_);
     cv_bridge::CvImagePtr cv_ptr;
 
     if (!cv_image_) return;
@@ -64,7 +65,7 @@ void PeopleCounter::updatePersonCounter(const Detection2DArr::ConstSharedPtr det
             counted_ids_.insert(track_id);
 
             ++unique_persons_count_;
-            RCLCPP_INFO(this->get_logger(), "Уникальных появлений%d", unique_persons_count_);
+            RCLCPP_INFO(this->get_logger(), "Появления в кадре: %d", unique_persons_count_);
         }
 
         float cx = det.bbox.center.position.x;
@@ -77,15 +78,17 @@ void PeopleCounter::updatePersonCounter(const Detection2DArr::ConstSharedPtr det
         int x2 = std::min(frame.cols, static_cast<int>(cx + w / 2.0f));
         int y2 = std::min(frame.rows, static_cast<int>(cy + h / 2.0f));
 
-        cv::rectangle(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 255, 0), 2);
+        cv::rectangle(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 100, 0), 3);
 
         std::string label = "person" + std::to_string(det.results[0].hypothesis.score);
         if (!track_id.empty()) label += "  ID: " + track_id;
 
-        cv::putText(frame, label, cv::Point(x1, y1 - 5), 
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+        cv::putText(frame, label, cv::Point(x1 + 5, y1 + 20), 
+                    cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 100, 0), 2);
         
     }
+
+    image_pub_->publish(*cv_ptr->toImageMsg());
 
     for (auto it = counted_ids_.begin(); it != counted_ids_.end();) {
         if (current_det_ids_.find(*it) == current_det_ids_.end()) {
@@ -95,9 +98,5 @@ void PeopleCounter::updatePersonCounter(const Detection2DArr::ConstSharedPtr det
         }
     }
 
-    image_pub_->publish(*cv_ptr->toImageMsg());
-
-
-    RCLCPP_INFO(this->get_logger(), "%li", det_arr.size());
 
 }

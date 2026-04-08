@@ -33,7 +33,6 @@ class PeopleCounter : public rclcpp::Node {
         std::unordered_set<std::string> counted_ids_;
         int unique_persons_count_ = 0;
 
-        std::mutex imgage_mutex_;
+        // std::mutex image_mutex_;
         CompressedImage::ConstSharedPtr cv_image_;
-
 };
