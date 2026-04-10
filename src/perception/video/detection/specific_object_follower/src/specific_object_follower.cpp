@@ -27,16 +27,19 @@ void SpecificObjectFollower::detectionArrayCallback(const Detection2DArr::ConstS
     std::vector<Detection2D> det_arr = msg->detections;
     
     bool has_valid_obj = false;
+    double v = 0.0;
+    double side = -1.0;
     double w = 0.0;
     double x = -1.0;
+    
+    Detection2D valid_detection;
+    HypoWithPose hypo_and_pose;
+    hypo_and_pose.hypothesis.score = 0.0;
+    valid_detection.results.push_back(hypo_and_pose);
     
     if (det_arr.empty()) {
         this->sport_client_.StopMove(this->req_);
     } else {
-        Detection2D valid_detection;
-        HypoWithPose hypo_and_pose;
-        hypo_and_pose.hypothesis.score = 0.0;
-        valid_detection.results.push_back(hypo_and_pose);
         
         for (const auto& det : det_arr) {
             const auto object_hypo = det.results.at(0).hypothesis;
@@ -46,18 +49,23 @@ void SpecificObjectFollower::detectionArrayCallback(const Detection2DArr::ConstS
     
             if (object_hypo.score > valid_detection.results.at(0).hypothesis.score) {
                 valid_detection = det;
-                x = valid_detection.bbox.center.position.x;
-                // err = this->CENTRE_X - x;
-                w = (this->CENTRE_X - x) * this->Kp;
                 has_valid_obj = true;
             }
         }
+
+        // RCLCPP_INFO(this->get_logger(), "S: %f", side);
     }
+
     if (!has_valid_obj) {
         this->sport_client_.StopMove(this->req_);
     } else {
-        this->sport_client_.Move(this->req_, 0.0, 0.0, w);
+        x = valid_detection.bbox.center.position.x;
+        w = (this->CENTRE_X - x) * this->Kp_w;
+
+        side = std::max(valid_detection.bbox.size_x, valid_detection.bbox.size_y);
+        v = std::max(0.0, std::min(this->abs_v_max, (this->GOAL_S - side) * this->Kp_v));
+        this->sport_client_.Move(this->req_, v, 0.0, w);
     }
 
-    RCLCPP_INFO(this->get_logger(), "X: %f, W: %f", x, w);
+    RCLCPP_INFO(this->get_logger(), "S: %f, V: %f", side, v);
 }
