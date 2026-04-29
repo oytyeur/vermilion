@@ -9,30 +9,27 @@ from cv_bridge import CvBridge
 from ultralytics import YOLO
 import torch, cv2 
 import numpy as np
+from ultralytics.utils.plotting import Annotator
 
 class YoloDetectorNode(Node):
     def __init__(self):
         super().__init__('yolo_detector_node')
 
         self.declare_parameter('image_topic', '/camera/raw_frame')
-        self.declare_parameter('detection_threshold', 0.75)
+        self.declare_parameter('detection_threshold', 0.5)
         self.declare_parameter('publish_annotated_image', True)
         self.declare_parameter('model', 'model/yolov8n.pt')
         self.declare_parameter('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         self.declare_parameter('enable_tracking', True)
         self.declare_parameter('tracker', 'botsort.yaml')
-        # self.declare_parameter('search_rubicks_cube', False)
-        # self.declare_parameter('search_redball', False)
 
         self.image_topic = self.get_parameter('image_topic').value
-        self.threshold = self.get_parameter('detection_threshold').value
+        self.detection_threshold = self.get_parameter('detection_threshold').value
         self.publish_annotated = self.get_parameter('publish_annotated_image').value
         self.model_name = self.get_parameter('model').value
         self.device = self.get_parameter('device').value
         self.enable_tracking = self.get_parameter('enable_tracking').value
         self.tracker = self.get_parameter('tracker').value
-        # self.search_rubicks_cube = self.get_parameter('search_rubicks_cube').value
-        # self.search_redball = self.get_parameter('search_redball').value
 
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -71,11 +68,6 @@ class YoloDetectorNode(Node):
             self.annotated_pub = self.create_publisher(Image, '/camera/annotated_image', qos_profile)
 
         self.get_logger().info("Нода запущена корректно")
-
-        # self.counted_ids = set()
-        # self.current_frame_ids = set()
-
-        # self.unique_people_count = 1
 
     def listener_callback_compressed(self, msg: CompressedImage):
         try:
@@ -117,45 +109,15 @@ class YoloDetectorNode(Node):
 
         annotated_boxes = []
         annotated_labels = []
-        # frame_people_count = 0
 
         if results.boxes is not None:
-
-            # self.current_frame_ids.clear()
-
             for box in results.boxes:
+                if box.conf.item() < self.detection_threshold:
+                    continue
                 confidence = float(box.conf.item())
-                # if confidence < self.threshold:
-                #     continue
 
                 class_id = int(box.cls.item())
                 class_name = self.class_names[class_id]
-
-                # is_new_object = False
-                # track_id = None
-
-                # if self.enable_tracking and hasattr(box, 'id') and box.id is not None:
-                #     track_id = int(box.id.item())
-                #     self.current_frame_ids.add(track_id)
-
-                #     if track_id not in self.counted_ids:
-                #         self.counted_ids.add(track_id)
-                #         self.get_logger().info(f'Уникальных появлений: {self.unique_people_count}')
-                #         is_new_object = True
-                #     if is_new_object:
-                #         self.unique_people_count += 1
-
-                # else:
-                #     xyxy = box.xyxy[0].cpu().numpy()
-                #     pos_id = (
-                #         int(xyxy[0] // 10),
-                #         int(xyxy[1] // 10)
-                #     )
-                #     self.current_frame_ids.add(pos_id)
-
-                #     # if pos_id not in self.counted_ids:
-                #     #     self.counted_ids.add(pos_id)
-                #     #     is_new_object = True
 
                 xyxy = box.xyxy[0].cpu().numpy()
                 x_min, y_min, x_max, y_max = xyxy
@@ -171,6 +133,8 @@ class YoloDetectorNode(Node):
                 detection.bbox.center.theta = 0.0
                 detection.bbox.size_x = size_x
                 detection.bbox.size_y = size_y
+                if box.id:
+                    detection.id = str(box.id.item())
 
                 obj_hypothesis = ObjectHypothesisWithPose()
                 obj_hypothesis.hypothesis.class_id = class_name
@@ -180,17 +144,12 @@ class YoloDetectorNode(Node):
                 detections_msg.detections.append(detection)
                 annotated_boxes.append(xyxy)
                 annotated_labels.append(class_name + f': {confidence:03f}')
-            
-            # for old_id in list(self.counted_ids):
-            #     if old_id not in self.current_frame_ids:
-            #         self.counted_ids.discard(old_id)
 
         self.detections_pub.publish(detections_msg)
 
 
         if self.annotated_pub:
             try:
-                from ultralytics.utils.plotting import Annotator
                 annotator = Annotator(cv_image, line_width=2)
                 for box, label in zip(annotated_boxes, annotated_labels):
                     annotator.box_label(box, label=label, color=(255, 128, 0))
