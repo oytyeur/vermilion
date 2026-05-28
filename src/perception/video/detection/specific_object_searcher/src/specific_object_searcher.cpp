@@ -26,7 +26,7 @@ SpecificObjectSearcher::SpecificObjectSearcher(const rclcpp::NodeOptions& node_o
         RCLCPP_ERROR(this->get_logger(), "Не удалось инициализировать видео клиент sdk");
         return;
     }
-    
+
     this->detection_sub_ = 
         this->create_subscription<Detection2DArr>("detections",
                                                   rclcpp::SensorDataQoS().keep_last(1),
@@ -54,7 +54,7 @@ bool SpecificObjectSearcher::initializeVideoClient() {
         RCLCPP_INFO(this->get_logger(), "Видео клиент sdk инициализирован чикипучно");
         return true;
     } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Ошибка инициализации видео клиента: %s", e.what());
+        RCLCPP_ERROR(this->get_logger(), "Ошибка инициализации видео клиента SDK: %s", e.what());
         return false;
     }
 }
