@@ -7,29 +7,34 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'network_interface',
-            default_value='',
+            default_value='eth0',
+            description='Сетевой интерфейс для подключения к роботу'
         ),
         DeclareLaunchArgument(
             'target_class',
             default_value='red ball',
+            description='Целевой класс для поиска'
         ),
         DeclareLaunchArgument(
             'conf_threshold',
             default_value='0.5',
+            description='Порог уверенности детекции'
         ),
         DeclareLaunchArgument(
             'base_frame',
             default_value='base_link',
+            description='Базовый фрейм робота'
         ),
         DeclareLaunchArgument(
             'odom_frame',
             default_value='odom',
+            description='Фрейм одометрии'
         ),
         
         Node(
-            package='specific_object_search',
-            executable='specific_object_search_node',
-            name='specific_object_search_node',
+            package='specific_object_searcher',
+            executable='specific_object_searcher_node',
+            name='specific_object_searcher_node',
             parameters=[{
                 'network_interface': LaunchConfiguration('network_interface'),
                 'target_class': LaunchConfiguration('target_class'),

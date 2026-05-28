@@ -1,7 +1,7 @@
-#include "../include/specific_object_search.hpp"
+#include "../include/specific_object_searcher.hpp"
 
-SpecificObjectSearch::SpecificObjectSearch(const rclcpp::NodeOptions& node_options) :
-    rclcpp::Node("specific_object_search_node", node_options) {
+SpecificObjectSearcher::SpecificObjectSearcher(const rclcpp::NodeOptions& node_options) :
+    rclcpp::Node("specific_object_searcher_node", node_options) {
 
     this->declare_parameter<std::string>("network_interface", "eth0");
     this->declare_parameter<std::string>("target_class", "red ball");
@@ -23,30 +23,30 @@ SpecificObjectSearch::SpecificObjectSearch(const rclcpp::NodeOptions& node_optio
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
     
     if (!initializeVideoClient()) {
-        RCLCPP_ERROR(this->get_logger(), "Не удалось инициализировать видео клиент Unitree");
+        RCLCPP_ERROR(this->get_logger(), "Не удалось инициализировать видео клиент sdk");
         return;
     }
     
     this->detection_sub_ = 
-        this->create_subscription<Detection2DArr>("/detections",
+        this->create_subscription<Detection2DArr>("detections",
                                                   rclcpp::SensorDataQoS().keep_last(1),
-                                                  std::bind(&SpecificObjectSearch::detectionCallback,
+                                                  std::bind(&SpecificObjectSearcher::detectionCallback,
                                                            this,
                                                            std::placeholders::_1));
     
     initial_pose_set_ = false;
     target_found_ = false;
     
-    RCLCPP_INFO(this->get_logger(), "Нода запущена чикипучно");
+    RCLCPP_INFO(this->get_logger(), "Нода SpecificObjectSearcher запущена чикипучно");
 }
 
-SpecificObjectSearch::~SpecificObjectSearch() {
+SpecificObjectSearcher::~SpecificObjectSearcher() {
     if (video_client_) {
         video_client_.reset();
     }
 }
 
-bool SpecificObjectSearch::initializeVideoClient() {
+bool SpecificObjectSearcher::initializeVideoClient() {
     try {
         unitree::robot::ChannelFactory::Instance()->Init(0, network_interface_);
         
@@ -54,15 +54,15 @@ bool SpecificObjectSearch::initializeVideoClient() {
         video_client_->SetTimeout(static_cast<float>(video_timeout_));
         video_client_->Init();
         
-        RCLCPP_INFO(this->get_logger(), "Видео клиент sdk инициализирован");
+        RCLCPP_INFO(this->get_logger(), "Видео клиент sdk инициализирован чикипучно");
         return true;
     } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Ошибка инициализации видео клиента sdk: %s", e.what());
+        RCLCPP_ERROR(this->get_logger(), "Ошибка инициализации видео клиента: %s", e.what());
         return false;
     }
 }
 
-bool SpecificObjectSearch::getCurrentTransform(geometry_msgs::msg::TransformStamped& transform) {
+bool SpecificObjectSearcher::getCurrentTransform(geometry_msgs::msg::TransformStamped& transform) {
     try {
         transform = tf_buffer_->lookupTransform(
             odom_frame_, 
@@ -70,12 +70,12 @@ bool SpecificObjectSearch::getCurrentTransform(geometry_msgs::msg::TransformStam
             tf2::TimePointZero);
         return true;
     } catch (const tf2::TransformException & ex) {
-        RCLCPP_WARN(this->get_logger(), "Не удалось получить трансформацию: %s", ex.what());
+        RCLCPP_WARN(this->get_logger(), "Не удалось получить TF: %s", ex.what());
         return false;
     }
 }
 
-void SpecificObjectSearch::detectionCallback(const Detection2DArr::ConstSharedPtr detect_msg) {
+void SpecificObjectSearcher::detectionCallback(const Detection2DArr::ConstSharedPtr detect_msg) {
     std::vector<Detection2D> detections = detect_msg->detections;
 
     try {
@@ -91,7 +91,6 @@ void SpecificObjectSearch::detectionCallback(const Detection2DArr::ConstSharedPt
             return;
         }
         
-        // Проверяем детекции
         for (const auto& det : detections) {
             if (det.results.empty()) continue;
             
@@ -141,14 +140,13 @@ void SpecificObjectSearch::detectionCallback(const Detection2DArr::ConstSharedPt
     }
 }
 
-void SpecificObjectSearch::overlayPositionInfo(cv::Mat& frame) {
+void SpecificObjectSearcher::overlayPositionInfo(cv::Mat& frame) {
     geometry_msgs::msg::TransformStamped current_transform;
     if (!getCurrentTransform(current_transform)) {
-        RCLCPP_WARN(this->get_logger(), "Не удалось получить позицию робота");
+        RCLCPP_WARN(this->get_logger(), "Не удалось получить позицию для фрейма");
         return;
     }
     
-    // Рассчитываем относительную позицию через TF
     double rel_x = current_transform.transform.translation.x - initial_transform_.transform.translation.x;
     double rel_y = current_transform.transform.translation.y - initial_transform_.transform.translation.y;
     double rel_z = current_transform.transform.translation.z - initial_transform_.transform.translation.z;
@@ -169,7 +167,7 @@ void SpecificObjectSearch::overlayPositionInfo(cv::Mat& frame) {
     int font_face = cv::FONT_HERSHEY_SIMPLEX;
     double font_scale = 0.7;
     int thickness = 2;
-    cv::Scalar color(0, 0, 255); 
+    cv::Scalar color(0, 0, 255);
     int line_spacing = 30;
     
     int baseline;
@@ -196,8 +194,7 @@ void SpecificObjectSearch::overlayPositionInfo(cv::Mat& frame) {
                 font_face, font_scale, color, thickness);
 }
 
-void SpecificObjectSearch::saveFrameWithInfo(const cv::Mat& frame) {
-
+void SpecificObjectSearcher::saveFrameWithInfo(const cv::Mat& frame) {
     auto now = this->get_clock()->now();
     auto timestamp = std::to_string(now.seconds()) + "_" + 
                     std::to_string(now.nanoseconds() % 1000000000);

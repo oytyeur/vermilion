@@ -1,5 +1,5 @@
-#ifndef SPECIFIC_OBJECT_SEARCH_HPP
-#define SPECIFIC_OBJECT_SEARCH_HPP
+#ifndef SPECIFIC_OBJECT_SEARCHER_HPP
+#define SPECIFIC_OBJECT_SEARCHER_HPP
 
 #include "rclcpp/rclcpp.hpp"
 #include "vision_msgs/msg/detection2_d_array.hpp"
@@ -19,10 +19,10 @@
 using Detection2DArr = vision_msgs::msg::Detection2DArray;
 using Detection2D = vision_msgs::msg::Detection2D;
 
-class SpecificObjectSearch : public rclcpp::Node {
+class SpecificObjectSearcher : public rclcpp::Node {
 public:
-    explicit SpecificObjectSearch(const rclcpp::NodeOptions& node_options);
-    ~SpecificObjectSearch();
+    explicit SpecificObjectSearcher(const rclcpp::NodeOptions& node_options);
+    ~SpecificObjectSearcher();
 
 private:
     void detectionCallback(const Detection2DArr::ConstSharedPtr detect_msg);

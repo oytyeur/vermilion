@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(specific_object_search)
+project(specific_object_searcher)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
@@ -13,25 +13,24 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(OpenCV REQUIRED)
 
-find_package(unitree_go2 REQUIRED)
+list(APPEND CMAKE_PREFIX_PATH /opt/unitree_robotics)
+find_package(unitree_sdk2 REQUIRED)
 
-include_directories(
-  include
-  ${OpenCV_INCLUDE_DIRS}
-  ${unitree_go2_INCLUDE_DIRS}
-)
-
-add_executable(specific_object_search_node 
-  src/specific_object_search.cpp 
+add_executable(specific_object_searcher_node 
+  src/specific_object_searcher.cpp 
   src/main.cpp
 )
 
-target_link_libraries(specific_object_search_node
-  ${OpenCV_LIBRARIES}
-  ${unitree_go2_LIBRARIES}
+target_include_directories(specific_object_searcher_node PRIVATE
+  include
 )
 
-ament_target_dependencies(specific_object_search_node
+target_link_libraries(specific_object_searcher_node
+  ${OpenCV_LIBRARIES}
+  unitree_sdk2
+)
+
+ament_target_dependencies(specific_object_searcher_node
   rclcpp
   vision_msgs
   geometry_msgs
@@ -40,7 +39,7 @@ ament_target_dependencies(specific_object_search_node
 )
 
 install(TARGETS
-  specific_object_search_node
+  specific_object_searcher_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
