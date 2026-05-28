@@ -1,5 +1,4 @@
-#include "../include/specific_object_searcher.hpp"
-
+#include "../include/specific_object_search.hpp"
 
 SpecificObjectSearch::SpecificObjectSearch(const rclcpp::NodeOptions& node_options) :
     rclcpp::Node("specific_object_search_node", node_options) {
@@ -8,13 +7,20 @@ SpecificObjectSearch::SpecificObjectSearch(const rclcpp::NodeOptions& node_optio
     this->declare_parameter<std::string>("target_class", "red ball");
     this->declare_parameter<double>("conf_threshold", 0.5);
     this->declare_parameter<int>("video_timeout", 3);
+    this->declare_parameter<std::string>("base_frame", "base_link");
+    this->declare_parameter<std::string>("odom_frame", "odom");
     
     network_interface_ = this->get_parameter("network_interface").as_string();
     target_class_ = this->get_parameter("target_class").as_string();
     conf_threshold_ = this->get_parameter("conf_threshold").as_double();
     video_timeout_ = this->get_parameter("video_timeout").as_int();
+    base_frame_ = this->get_parameter("base_frame").as_string();
+    odom_frame_ = this->get_parameter("odom_frame").as_string();
     
     save_directory_ = "~/found_objects";
+    
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
     
     if (!initializeVideoClient()) {
         RCLCPP_ERROR(this->get_logger(), "Не удалось инициализировать видео клиент Unitree");
@@ -22,21 +28,16 @@ SpecificObjectSearch::SpecificObjectSearch(const rclcpp::NodeOptions& node_optio
     }
     
     this->detection_sub_ = 
-        this->create_subscription<Detection2DArr>("detections",
+        this->create_subscription<Detection2DArr>("/detections",
                                                   rclcpp::SensorDataQoS().keep_last(1),
                                                   std::bind(&SpecificObjectSearch::detectionCallback,
                                                            this,
                                                            std::placeholders::_1));
-
-    this->odom_sub_ = 
-        this->create_subscription<Odometry>("/utlidar/robot_odom",
-                                            rclcpp::SensorDataQoS().keep_last(1),
-                                            std::bind(&SpecificObjectSearch::odomCallback,
-                                                     this,
-                                                     std::placeholders::_1));
     
     initial_pose_set_ = false;
     target_found_ = false;
+    
+    RCLCPP_INFO(this->get_logger(), "Нода запущена чикипучно");
 }
 
 SpecificObjectSearch::~SpecificObjectSearch() {
@@ -53,20 +54,24 @@ bool SpecificObjectSearch::initializeVideoClient() {
         video_client_->SetTimeout(static_cast<float>(video_timeout_));
         video_client_->Init();
         
-        RCLCPP_INFO(this->get_logger(), "Видео клиент инициализирован чикипучно");
+        RCLCPP_INFO(this->get_logger(), "Видео клиент sdk инициализирован");
         return true;
     } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Ошибка инициализации видео клиента: %s", e.what());
+        RCLCPP_ERROR(this->get_logger(), "Ошибка инициализации видео клиента sdk: %s", e.what());
         return false;
     }
 }
 
-void SpecificObjectSearch::odomCallback(const Odometry::ConstSharedPtr odom_msg) {
-    current_odom_ = *odom_msg;
-    
-    if (!initial_pose_set_) {
-        initial_odom_ = *odom_msg;
-        initial_pose_set_ = true;
+bool SpecificObjectSearch::getCurrentTransform(geometry_msgs::msg::TransformStamped& transform) {
+    try {
+        transform = tf_buffer_->lookupTransform(
+            odom_frame_, 
+            base_frame_,
+            tf2::TimePointZero);
+        return true;
+    } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN(this->get_logger(), "Не удалось получить трансформацию: %s", ex.what());
+        return false;
     }
 }
 
@@ -86,46 +91,85 @@ void SpecificObjectSearch::detectionCallback(const Detection2DArr::ConstSharedPt
             return;
         }
         
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Ошибка при полученииизображения: %s", e.what());
-    }
-    
-    for (const auto& det : detections) {
-        if (det.results.empty()) continue;
-        
-        std::string class_id = det.results[0].hypothesis.class_id;
-        double score = det.results[0].hypothesis.score;
-        
-        if (class_id == target_class_ && score >= conf_threshold_) {
+        // Проверяем детекции
+        for (const auto& det : detections) {
+            if (det.results.empty()) continue;
             
-            overlayPositionInfo(frame);
-            saveFrameWithInfo(frame);
-
-            break;
+            std::string class_id = det.results[0].hypothesis.class_id;
+            double score = det.results[0].hypothesis.score;
+            
+            if (class_id == target_class_ && score >= conf_threshold_) {
+                
+                RCLCPP_INFO(this->get_logger(), "Обнаружен %s с уверенностью %.3f!", 
+                            target_class_.c_str(), score);
+                
+                geometry_msgs::msg::TransformStamped current_transform;
+                if (!getCurrentTransform(current_transform)) {
+                    RCLCPP_WARN(this->get_logger(), "Не удалось получить текущую позицию через TF");
+                    return;
+                }
+                
+                if (!initial_pose_set_) {
+                    initial_transform_ = current_transform;
+                    initial_pose_set_ = true;
+                    
+                    RCLCPP_INFO(this->get_logger(), "Начальная позиция установлена чикипучно");
+                    RCLCPP_INFO(this->get_logger(), "Позиция: x=%.3f, y=%.3f, z=%.3f", 
+                                initial_transform_.transform.translation.x,
+                                initial_transform_.transform.translation.y,
+                                initial_transform_.transform.translation.z);
+                    RCLCPP_INFO(this->get_logger(), "Ориентация: qx=%.3f, qy=%.3f, qz=%.3f, qw=%.3f",
+                                initial_transform_.transform.rotation.x,
+                                initial_transform_.transform.rotation.y,
+                                initial_transform_.transform.rotation.z,
+                                initial_transform_.transform.rotation.w);
+                }
+                
+                overlayPositionInfo(frame);
+                saveFrameWithInfo(frame);
+                
+                if (!target_found_) {
+                    target_found_ = true;
+                }
+                
+                break;
+            }
         }
+        
+    } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Ошибка при получении изображения: %s", e.what());
     }
 }
 
 void SpecificObjectSearch::overlayPositionInfo(cv::Mat& frame) {
-    double rel_x = current_odom_.pose.pose.position.x - initial_odom_.pose.pose.position.x;
-    double rel_y = current_odom_.pose.pose.position.y - initial_odom_.pose.pose.position.y;
-    double rel_z = current_odom_.pose.pose.position.z - initial_odom_.pose.pose.position.z;
+    geometry_msgs::msg::TransformStamped current_transform;
+    if (!getCurrentTransform(current_transform)) {
+        RCLCPP_WARN(this->get_logger(), "Не удалось получить позицию робота");
+        return;
+    }
     
-    auto& q = current_odom_.pose.pose.orientation;
+    // Рассчитываем относительную позицию через TF
+    double rel_x = current_transform.transform.translation.x - initial_transform_.transform.translation.x;
+    double rel_y = current_transform.transform.translation.y - initial_transform_.transform.translation.y;
+    double rel_z = current_transform.transform.translation.z - initial_transform_.transform.translation.z;
+    
+    auto& q = current_transform.transform.rotation;
     
     std::string object_text = "Object: " + target_class_;
-    std::string position_text = "Position: x=" + std::to_string(rel_x).substr(0, 5) + 
-                                " y=" + std::to_string(rel_y).substr(0, 5) + 
-                                " z=" + std::to_string(rel_z).substr(0, 5);
-    std::string quat_text = "Quat: x=" + std::to_string(q.x).substr(0, 4) + 
-                           " y=" + std::to_string(q.y).substr(0, 4) + 
-                           " z=" + std::to_string(q.z).substr(0, 4) + 
-                           " w=" + std::to_string(q.w).substr(0, 4);
+    
+    char pos_buffer[100];
+    snprintf(pos_buffer, sizeof(pos_buffer), "Pos: x=%.2f y=%.2f z=%.2f", rel_x, rel_y, rel_z);
+    std::string position_text = pos_buffer;
+    
+    char quat_buffer[100];
+    snprintf(quat_buffer, sizeof(quat_buffer), "Quat: x=%.2f y=%.2f z=%.2f w=%.2f", 
+             q.x, q.y, q.z, q.w);
+    std::string quat_text = quat_buffer;
     
     int font_face = cv::FONT_HERSHEY_SIMPLEX;
     double font_scale = 0.7;
     int thickness = 2;
-    cv::Scalar color(0, 0, 255);
+    cv::Scalar color(0, 0, 255); 
     int line_spacing = 30;
     
     int baseline;
@@ -153,6 +197,7 @@ void SpecificObjectSearch::overlayPositionInfo(cv::Mat& frame) {
 }
 
 void SpecificObjectSearch::saveFrameWithInfo(const cv::Mat& frame) {
+
     auto now = this->get_clock()->now();
     auto timestamp = std::to_string(now.seconds()) + "_" + 
                     std::to_string(now.nanoseconds() % 1000000000);

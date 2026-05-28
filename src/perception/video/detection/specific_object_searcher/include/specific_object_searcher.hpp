@@ -4,7 +4,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "vision_msgs/msg/detection2_d_array.hpp"
 #include "vision_msgs/msg/detection2_d.hpp"
-#include "nav_msgs/msg/odometry.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.h"
 #include "unitree/robot/go2/video/video_client.hpp"
 #include <string>
 #include <functional>
@@ -16,7 +18,6 @@
 
 using Detection2DArr = vision_msgs::msg::Detection2DArray;
 using Detection2D = vision_msgs::msg::Detection2D;
-using Odometry = nav_msgs::msg::Odometry;
 
 class SpecificObjectSearch : public rclcpp::Node {
 public:
@@ -25,15 +26,16 @@ public:
 
 private:
     void detectionCallback(const Detection2DArr::ConstSharedPtr detect_msg);
-    void odomCallback(const Odometry::ConstSharedPtr odom_msg);
     
     bool initializeVideoClient();
-    void processDetections(const std::vector<Detection2D>& detections);
+    bool getCurrentTransform(geometry_msgs::msg::TransformStamped& transform);
     void overlayPositionInfo(cv::Mat& frame);
     void saveFrameWithInfo(const cv::Mat& frame);
     
     rclcpp::Subscription<Detection2DArr>::SharedPtr detection_sub_;
-    rclcpp::Subscription<Odometry>::SharedPtr odom_sub_;
+    
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
     
     std::unique_ptr<unitree::robot::go2::VideoClient> video_client_;
     
@@ -42,9 +44,10 @@ private:
     double conf_threshold_;
     std::string save_directory_;
     int video_timeout_;
+    std::string base_frame_;
+    std::string odom_frame_;
     
-    Odometry initial_odom_;
-    Odometry current_odom_;
+    geometry_msgs::msg::TransformStamped initial_transform_;
     bool initial_pose_set_;
     bool target_found_;
     
