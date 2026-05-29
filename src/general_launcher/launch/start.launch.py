@@ -149,7 +149,7 @@ def generate_launch_description():
             launch_arguments={
                 'params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'nav2_params.yaml'),
                 'use_sim_time': use_sim_time,
-                'map': os.path.join(get_package_share_directory('general_launcher'), 'map', 'detailed_v2.yaml'),
+                'map': os.path.join(get_package_share_directory('general_launcher'), 'map', 'map_best_1.yaml'),
 
             }.items(),
         ),
