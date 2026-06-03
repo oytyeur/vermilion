@@ -3,7 +3,7 @@
 SpecificObjectSearcher::SpecificObjectSearcher(const rclcpp::NodeOptions& node_options) :
     rclcpp::Node("specific_object_searcher_node", node_options) {
 
-    this->declare_parameter<std::string>("network_interface", "eth0");
+    this->declare_parameter<std::string>("network_interface", "enx00e04c36003f");
     this->declare_parameter<std::string>("target_class", "red ball");
     this->declare_parameter<double>("conf_threshold", 0.5);
     this->declare_parameter<int>("video_timeout", 3);
@@ -41,9 +41,6 @@ SpecificObjectSearcher::SpecificObjectSearcher(const rclcpp::NodeOptions& node_o
 }
 
 SpecificObjectSearcher::~SpecificObjectSearcher() {
-    if (video_client_) {
-        video_client_.reset();
-    }
 }
 
 bool SpecificObjectSearcher::initializeVideoClient() {

@@ -7,7 +7,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'network_interface',
-            default_value='eth0',
+            default_value='enx00e04c36003f',
             description='Сетевой интерфейс для подключения к роботу'
         ),
         DeclareLaunchArgument(
