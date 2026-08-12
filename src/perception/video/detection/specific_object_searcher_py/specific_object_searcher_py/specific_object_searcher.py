@@ -47,7 +47,7 @@ class SpecificObjectSearcher(Node):
         
         today = datetime.now().strftime('%Y-%m-%d')
         self.save_directory = os.path.expanduser(
-            f'~/vermilion/src/perception/video/detection/specific_object_searcher/found_objects/{today}'
+            f'~/specific_object_searcher/found_objects/{today}'
         )
         os.makedirs(self.save_directory, exist_ok=True)
         self.get_logger().info(f'Save directory: {self.save_directory}')
@@ -85,7 +85,8 @@ class SpecificObjectSearcher(Node):
                 self.base_frame,
                 rclpy.time.Time()
             )
-        except Exception:
+        except Exception as e:
+            self.get_logger().info(f'{e}')
             return None
     
     def get_image(self):
@@ -93,8 +94,9 @@ class SpecificObjectSearcher(Node):
             code, data = self.video_client.GetImageSample()
             if code != 0:
                 return None
-            return cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
-        except Exception:
+            return cv2.imdecode(np.frombuffer(bytes(data), dtype=np.uint8), cv2.IMREAD_COLOR)
+        except Exception as e:
+            self.get_logger().info(f'{e}')
             return None
     
     def overlay_info(self, frame, transform):
@@ -134,12 +136,14 @@ class SpecificObjectSearcher(Node):
             self.get_logger().info(f'Saved: {filename}')
     
     def detection_callback(self, msg):
+        
         frame = self.get_image()
         if frame is None:
             return
         
         for detection in msg.detections:
             if not detection.results:
+
                 continue
             
             class_id = detection.results[0].hypothesis.class_id

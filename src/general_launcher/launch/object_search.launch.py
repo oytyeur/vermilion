@@ -1,0 +1,168 @@
+import os
+from typing import List
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
+
+
+import os
+from typing import List
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
+
+def add_pointcloud_to_laserscan_node() -> Node:
+    """Create pointcloud to laserscan conversion node"""
+
+    return Node(
+        package='pointcloud_to_laserscan',
+        executable='pointcloud_to_laserscan_node',
+        name='pointcloud_to_laserscan',
+        remappings=[
+            # ('cloud_in', '/utlidar/cloud_deskewed'),
+            # ('cloud_in', '/lidar/zero_filtered_points'),
+            # ('cloud_in', '/lidar/baselink_points'),
+            ('cloud_in', '/lidar/buffered_points'),
+            ('scan', 'scan'),
+        ],
+        parameters=[{
+            'target_frame': 'base_link',
+            # 'min_height': 0.12,   
+            'min_height': -0.15,   
+            # 'max_height': 1.5,
+            'max_height': 2.0,
+            'angle_increment': 0.005
+        }],
+        output='screen',
+    )
+
+
+def generate_launch_description():
+    """Generate the launch description for Go2 robot system"""
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+
+    # Combine all elements
+    launch_entities = [
+        # RViz2
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', os.path.join(get_package_share_directory('general_launcher'), 'config', 'video_detection.rviz')],
+            parameters=[{'use_sim_time': use_sim_time}]
+        ),
+
+
+        Node(
+            package='odom_baselink_tf_publisher',
+            executable='odom_baselink_tf_publisher_exec',
+            name='odom_baselink_tf_publisher_node',
+            remappings=[
+                ('input', '/utlidar/robot_pose'),
+            ]
+        ),
+
+
+        Node(
+            package = "tf2_ros", 
+            executable = "static_transform_publisher",
+            arguments = ["0", "0", "0", "0", "0", "0", "map", "odom"]
+        ),
+
+
+        Node(
+            package='lidar_zero_points_filter',
+            executable='lidar_zero_points_filter_exec',
+            name='lidar_zero_points_filter_node',
+            remappings=[
+                ('input', '/utlidar/cloud_deskewed'),
+                ('output', '/lidar/zero_filtered_points')
+            ]
+        ),
+
+        
+        Node(
+            package='lidar_point_cloud_buffer',
+            executable='lidar_point_cloud_buffer_exec',
+            name='lidar_point_cloud_buffer_node',
+            remappings=[
+                ('input', '/lidar/zero_filtered_points'),
+                ('output', '/lidar/buffered_points')
+            ],
+            parameters=[{'buffer_time': 1.0}] # для карты лучше выставить побольше (10 сек было хорошо)
+        ),
+
+
+        Node(
+            package='lidar_points_to_baselink_transformer',
+            executable='lidar_points_to_baselink_transformer_exec',
+            name='lidar_points_to_baselink_transformer_node',
+            remappings=[
+                # ('input', '/lidar/zero_filtered_points'),
+                ('input', '/lidar/buffered_points'),
+                ('output', '/lidar/baselink_points')
+            ]
+        ),
+
+
+        add_pointcloud_to_laserscan_node(),
+
+
+        IncludeLaunchDescription( # лаунчер с детецией
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('go2_sdk_videostream'),
+                            'launch', 'videostream.launch.py')
+            ]),
+        ),
+
+
+        IncludeLaunchDescription( # лаунчер с детецией
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('yolo_detector'),
+                            'launch', 'redball_search.launch.py')
+            ]),
+        ),
+
+        IncludeLaunchDescription( # лаунчер с детецией
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('specific_object_searcher_py'),
+                            'launch', 'start.launch.py')
+            ]),
+        ),
+
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('nav2_bringup'),
+                            'launch', 'bringup_launch.py')
+            ]),
+            launch_arguments={
+                'params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'nav2_params.yaml'),
+                'use_sim_time': use_sim_time,
+                'map': os.path.join(get_package_share_directory('general_launcher'), 'map', 'map_best_1.yaml'),
+
+            }.items(),
+        ),
+
+        Node(
+            package='high_level_motion_controller',
+            executable='high_level_motion_controller_exec',
+            name='high_level_motion_controller_node',
+            remappings=[
+                # ('input', '/lidar/zero_filtered_points'),
+                ('input', '/cmd_vel')
+            ]
+        ),
+    ]
+    
+    return LaunchDescription(launch_entities)
+
