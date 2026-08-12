@@ -8,6 +8,17 @@ from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
 
+
+import os
+from typing import List
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
+
 def add_pointcloud_to_laserscan_node() -> Node:
     """Create pointcloud to laserscan conversion node"""
 
@@ -46,7 +57,7 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             output='screen',
-            arguments=['-d', os.path.join(get_package_share_directory('general_launcher'), 'config', 'basic_rviz_conf.rviz')],
+            arguments=['-d', os.path.join(get_package_share_directory('general_launcher'), 'config', 'video_detection.rviz')],
             parameters=[{'use_sim_time': use_sim_time}]
         ),
 
@@ -114,31 +125,19 @@ def generate_launch_description():
         ),
 
 
-        ###########################################################
-        ###########################################################
-        ###########################################################
-        ###########################################################
-        ###########################################################
-
-
         IncludeLaunchDescription( # лаунчер с детецией
             PythonLaunchDescriptionSource([
                 os.path.join(get_package_share_directory('yolo_detector'),
-                            'launch', 'detector.launch.py')
+                            'launch', 'redball_search.launch.py')
             ]),
         ),
 
-
-        # IncludeLaunchDescription(
-        #     PythonLaunchDescriptionSource([
-        #         os.path.join(get_package_share_directory('slam_toolbox'),
-        #                     'launch', 'online_async_launch.py')
-        #     ]),
-        #     launch_arguments={
-        #         'slam_params_file': os.path.join(get_package_share_directory('general_launcher'), 'config', 'mapper_params_online_async.yaml'),
-        #         'use_sim_time': use_sim_time,
-        #     }.items(),
-        # ),
+        IncludeLaunchDescription( # лаунчер с детецией
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('specific_object_searcher_py'),
+                            'launch', 'start.launch.py')
+            ]),
+        ),
 
 
         IncludeLaunchDescription(
@@ -154,17 +153,6 @@ def generate_launch_description():
             }.items(),
         ),
 
-
-        # Node(
-        #     package='pc2_values_demonstrator',
-        #     executable='pc2_values_demonstrator_exec',
-        #     name='pc2_values_demonstrator_node',
-        #     remappings=[
-        #         # ('input', '/utlidar/cloud_deskewed'),
-        #         ('input', '/lidar/zero_filtered_points'),
-        #     ]
-        # ),
-
         Node(
             package='high_level_motion_controller',
             executable='high_level_motion_controller_exec',
@@ -177,3 +165,4 @@ def generate_launch_description():
     ]
     
     return LaunchDescription(launch_entities)
+
